@@ -7,6 +7,10 @@ public class Card
     string suit;
     int points;
 
+    public Card()
+    {
+            
+    }
     public Card(string name, string suit, int points)
     {
         this.name = name;
