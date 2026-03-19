@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class Player
 {
@@ -9,14 +10,21 @@ public class Player
     int round_points;
     int game_points;
 
+    public Player()
+    {
+            
+    }
     public Player(int id)
     {
         this.id = id;
     }
 
-    public void TakeCardFromDeck(Deck deck)
+    public Card TakeCardFromDeck(Deck deck)
     {
-        hand.Add(deck.GetCards().Pop());
+        Card card = deck.GetCards().Pop();
+        hand.Add(card);
+
+        return card;
     }
 
     public List<Card> GetHand()
@@ -29,12 +37,39 @@ public class Player
         Debug.Log($"Player {id} played card {hand[index].GetName()} of {hand[index].GetSuit()}");
         Card removed = hand[index];
         hand.RemoveAt(index);
+        CheckFor20or40(removed);
+
         return removed;
     }
 
-    public void AddPoints(Card card1, Card card2)
+    void CheckFor20or40(Card removed)
+    {
+        if (removed.GetName() == "Q")
+        {
+            foreach (Card card in hand)
+            {
+                if (card.GetName() == "K" && card.GetSuit() == removed.GetSuit())
+                {
+                    if (removed.GetKoz() == true)
+                    {
+                        round_points += 40;
+                    }
+                    else
+                    {
+                        round_points += 20;
+                    }
+                }
+            }
+        }
+    }
+
+    public void AddToRoundPoints(Card card1, Card card2)
     {
         round_points += card1.GetPoints() + card2.GetPoints();
+    }
+    public void AddToGamePoints(byte points)
+    {
+        game_points += points;
     }
 
     public int GetRoundPoints()
@@ -52,7 +87,7 @@ public class Player
         string cards = "";
         for (int i = 0; i < hand.Count; i++)
         {
-            cards += $"[{i}]" + "("+ hand[i].GetName().ToString() + " " + hand[i].GetSuit().ToString() + ") ";
+            cards += $"[{i+1}]" + "("+ hand[i].GetName().ToString() + " " + hand[i].GetSuit().ToString() + ") ";
         }
         Debug.Log($"Player{id} {cards}");
     }
@@ -62,6 +97,7 @@ public class Player
         Debug.Log($"Player{id} points: {GetRoundPoints()}");
     }
 
+    //TODO::
     //public Card Change9Koz()
     //{ 
         
