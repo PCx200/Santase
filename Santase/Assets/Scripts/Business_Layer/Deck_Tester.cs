@@ -6,25 +6,30 @@ public class Deck_Tester : MonoBehaviour
 {
     Deck deck = new Deck();
 
-    Player player1 = new Player(1);
-    Player player2 = new Player(2);
+    static Player player1 = new Player(0);
+    static Player player2 = new Player(1);
 
     Card player1_card;
     Card player2_card;
 
     [SerializeField] int cards_played;
 
-    enum PlayerOnTurn { player1, player2 }
-    PlayerOnTurn player_on_turn;
+    public List<Card_Presenter> card_presenters;
+    int player_on_turn = player1.ID;
 
-    enum GameState { Preparation, Phase1, Phase2 }
-    GameState game_state;
+    public enum GameState { Preparation, Phase1, Phase2 }
+    [SerializeField] GameState game_state;
 
     bool is_round_finished;
 
-    void Start()
+    [SerializeField] Transform player1_hand;
+    [SerializeField] Transform player2_hand;
+    [SerializeField] Transform koz_transform;
+
+    private void Start()
     {
-        //Debug.Log(deck.GetCards().Count);
+        var sw = new System.Diagnostics.Stopwatch();
+        sw.Start();
         InitDeck();
 
         DetermineKoz();
@@ -34,9 +39,17 @@ public class Deck_Tester : MonoBehaviour
         player1.PrintHand();
         player2.PrintHand();
 
-        PutKozAsLastCard();
+        VisualiseHand(player1, player1_hand);
+        VisualiseHand(player2, player2_hand);
+
+        Card koz_card = PutKozAsLastCard();
+        VisualiseKoz(koz_card, koz_transform);
+
 
         game_state = GameState.Phase1;
+        sw.Stop();
+
+        Debug.Log(sw.ElapsedMilliseconds + " Milliseconds to execute the shuffling ");
     }
 
     private void Update()
@@ -54,24 +67,25 @@ public class Deck_Tester : MonoBehaviour
             game_state = GameState.Phase2;
         }
 
-        if (!is_round_finished)
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            RoundWinner();
-        }   
+            player1.Change9Koz(deck);
+            player2.Change9Koz(deck);
+        }
     }
 
     private void HandleInput(int input)
     {
         switch (player_on_turn)
         {
-            case PlayerOnTurn.player1:
+            case 0: // Player1 Turn
                 player1_card = PlayerPlayCard(player1, input);
-                player_on_turn = PlayerOnTurn.player2;
+                player_on_turn = player2.ID;
                 cards_played++;
                 break;
-            case PlayerOnTurn.player2:
+            case 1: // Player2 Turn
                 player2_card = PlayerPlayCard(player2, input);
-                player_on_turn = PlayerOnTurn.player1;
+                player_on_turn = player1.ID;
                 cards_played++;
                 break;
             default:
@@ -86,8 +100,25 @@ public class Deck_Tester : MonoBehaviour
                     break;
                 case GameState.Phase1:
                     DetermineWhoGetsPoints(player1_card, player2_card);
+                    player1.GetHand().Remove(player1_card);
+                    player2.GetHand().Remove(player2_card);
+                    VisualiseHand(player1, player1_hand);
+                    VisualiseHand(player2, player2_hand);
                     break;
-                case GameState.Phase2:
+                case GameState.Phase2: // TODO:: FIX THIS PHASE
+                    if (player1_card.GetSuit() == player2_card.GetSuit())
+                    {
+                        DetermineWhoGetsPoints(player1_card, player2_card);
+                        player1.GetHand().Remove(player1_card);
+                        player2.GetHand().Remove(player2_card);
+                        VisualiseHand(player1, player1_hand);
+                        VisualiseHand(player2, player2_hand);
+                    }
+                    else {
+                        Debug.Log("You must play the same suit as the opponent if you have it.");
+                        cards_played = 0;
+                    }
+
                     break;
                 default:
                     break;
@@ -118,35 +149,49 @@ public class Deck_Tester : MonoBehaviour
         }
     }
 
+    private void VisualiseHand(Player player, Transform hand_transform)
+    {
+        foreach (Transform child in hand_transform)
+        { 
+            Destroy(child.gameObject);
+        }
+
+        foreach (Card card in player.GetHand())
+        {
+            Card_Presenter prefab = card_presenters.Find(cp =>
+            cp.card_SO.Name == card.GetName() &&
+            cp.card_SO.Suit == card.GetSuit()
+            );
+
+            Card_Presenter cp = Instantiate(prefab, hand_transform);
+            cp.card = card;
+
+        }
+    }
+
+    private void VisualiseKoz(Card koz_card, Transform koz_transform)
+    {
+        Card_Presenter prefab = card_presenters.Find(cp =>
+            cp.card_SO.Name == koz_card.GetName() &&
+            cp.card_SO.Suit == koz_card.GetSuit()
+            );
+
+        Card_Presenter cp = Instantiate(prefab, koz_transform);
+        cp.card = koz_card;
+    }
+
     private void InitDeck()
     {
         for (int i = 0; i < 20; i++)
-        {
+        {           
             deck.RandomShuffle();
             deck.CutDeck();
             deck.RoseShuffle();
         }
-
         deck.PrintDeck();
-
-        //Stack<Card> temp_deck = new Stack<Card>(deck.GetCards());
-        //for (int i = 0; i < deck.size; i++)
-        //{
-        //    Card card = temp_deck.Pop();
-        //    Debug.Log($"{card.GetName()} {card.GetSuit()} {card.GetPoints()}");
-        //}
-
-        //deck.CutDeck();
-
-        //temp_deck = new Stack<Card>(deck.GetCards());
-        //for (int i = 0; i < deck.size; i++)
-        //{
-        //    Card card = temp_deck.Pop();
-        //    Debug.Log($"{card.GetName()} {card.GetSuit()} {card.GetPoints()}");
-        //}
     }
 
-    string DetermineKoz()
+    private string DetermineKoz()
     {
         List<Card> temp_cards = new List<Card>();
         Queue<Card> temp_deck = new Queue<Card>(deck.GetCards());
@@ -168,14 +213,9 @@ public class Deck_Tester : MonoBehaviour
         }
 
         return temp_cards[12].GetSuit();
-
-
-        //leftover_deck = new Stack<Card>(deck.GetCards());
-        //Debug.Log($"KOZ IS: {leftover_deck.Peek().GetSuit()}");
-        //return leftover_deck.Pop().GetSuit();
     }
 
-    void PutKozAsLastCard()
+    private Card PutKozAsLastCard()
     { 
         List<Card> temp_list = new List<Card>();
 
@@ -196,120 +236,49 @@ public class Deck_Tester : MonoBehaviour
         { 
             deck.GetCards().Push(temp_list[i]);
         }
+
+        return koz;
     }
 
-    Card PlayerPlayCard(Player player, int index)
+    private Card PlayerPlayCard(Player player, int index)
     {
         Card played_card = player.PlayCard(index);
         return played_card; 
     }
 
-    void DetermineWhoGetsPoints(Card card1, Card card2)
+    private void PrintPlayersHandsAndPoints()
     {
-        if (card1.GetPoints() > card2.GetPoints() && card1.GetSuit() == card2.GetSuit())
-        {
-            player1.AddToRoundPoints(card1, card2);
-            Debug.Log($"Player1 took the cards. Player1 plays first!");
-            if (deck.GetCards().Count >= 2)
-            {
-                player1.TakeCardFromDeck(deck);
-                player2.TakeCardFromDeck(deck);
-            }
-            player1.PrintHand();
-            player2.PrintHand();
-            player1.PrintPoints();
-            player2.PrintPoints();
-            player_on_turn = PlayerOnTurn.player1;
-            cards_played = 0;
-        }
-        else if (player_on_turn == PlayerOnTurn.player1 && card1.GetSuit() != card2.GetSuit())
-        {
-            player1.AddToRoundPoints(card1, card2);
-            Debug.Log($"Player1 took the cards. Player1 plays first!");
-            if (deck.GetCards().Count >= 2)
-            {
-                player1.TakeCardFromDeck(deck);
-                player2.TakeCardFromDeck(deck);
-            }
-            player1.PrintHand();
-            player2.PrintHand();
-            player1.PrintPoints();
-            player2.PrintPoints();
-            player_on_turn = PlayerOnTurn.player1;
-            cards_played = 0;
-        }
-        else if (player_on_turn == PlayerOnTurn.player1 && card1.GetSuit() != card2.GetSuit() && card2.GetKoz() == true)
-        {
-            player2.AddToRoundPoints(card1, card2);
-            Debug.Log($"Player1 took the cards. Player1 plays first!");
-            if (deck.GetCards().Count >= 2)
-            {
-                player2.TakeCardFromDeck(deck);
-                player1.TakeCardFromDeck(deck);
-            }
-            player1.PrintHand();
-            player2.PrintHand();
-            player1.PrintPoints();
-            player2.PrintPoints();
-            player_on_turn = PlayerOnTurn.player2;
-            cards_played = 0;
-        }
-
-
-
-
-
-        else if (card1.GetPoints() < card2.GetPoints() && card1.GetSuit() == card2.GetSuit())
-        {
-            player2.AddToRoundPoints(card1, card2);
-            Debug.Log($"Player2 took the cards. Player2 plays first!");
-            if (deck.GetCards().Count >= 2)
-            {
-                player2.TakeCardFromDeck(deck);
-                player1.TakeCardFromDeck(deck);
-            }
-            player1.PrintHand();
-            player2.PrintHand();
-            player1.PrintPoints();
-            player2.PrintPoints();
-            player_on_turn = PlayerOnTurn.player2;
-            cards_played = 0;
-        }
-        else if (player_on_turn == PlayerOnTurn.player2 && card1.GetSuit() != card2.GetSuit())
-        {
-            player2.AddToRoundPoints(card1, card2);
-            Debug.Log($"Player1 took the cards. Player1 plays first!");
-            if (deck.GetCards().Count >= 2)
-            {
-                player2.TakeCardFromDeck(deck);
-                player1.TakeCardFromDeck(deck);
-            }
-            player1.PrintHand();
-            player2.PrintHand();
-            player1.PrintPoints();
-            player2.PrintPoints();
-            player_on_turn = PlayerOnTurn.player2;
-            cards_played = 0;
-        }
-        else if (player_on_turn == PlayerOnTurn.player2 && card1.GetSuit() != card2.GetSuit() && card1.GetKoz() == true)
-        {
-            player1.AddToRoundPoints(card1, card2);
-            Debug.Log($"Player1 took the cards. Player1 plays first!");
-            if (deck.GetCards().Count >= 2)
-            {
-                player1.TakeCardFromDeck(deck);
-                player2.TakeCardFromDeck(deck);
-            }
-            player1.PrintHand();
-            player2.PrintHand();
-            player1.PrintPoints();
-            player2.PrintPoints();
-            player_on_turn = PlayerOnTurn.player1;
-            cards_played = 0;
-        }
+        player1.PrintHand();
+        player2.PrintHand();
+        player1.PrintPoints();
+        player2.PrintPoints();
     }
 
-    Player RoundWinner()
+    private void HandleHandWinner(Player winner, Player loser, Card player1_card, Card player2_card)
+    {
+        winner.AddToRoundPoints(player1_card, player2_card);
+        Debug.Log($"{winner} took the cards. {winner} plays first!");
+        if (deck.GetCards().Count >= 2)
+        {
+            winner.TakeCardFromDeck(deck);
+            loser.TakeCardFromDeck(deck);
+        }
+
+        //if (player1 == winner)
+        //{
+        //    player_on_turn = player1.ID;
+        //}
+        //else
+        //{
+        //    player_on_turn = player2.ID;
+        //}
+
+        player_on_turn = player1 == winner ? player1.ID : player2.ID;
+
+        cards_played = 0;
+    }
+
+    private Player RoundWinner()
     {
         if (player1.GetRoundPoints() >= 66)
         {
@@ -350,5 +319,81 @@ public class Deck_Tester : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void DetermineWhoGetsPoints(Card player1_card, Card player2_card)
+    {
+        if (player1_card.GetPoints() > player2_card.GetPoints() && player1_card.GetSuit() == player2_card.GetSuit())
+        {
+            HandleHandWinner(player1, player2, player1_card, player2_card);
+
+            PrintPlayersHandsAndPoints();
+
+            if (deck.IsEmpty())
+            {
+                game_state = GameState.Phase2;
+            }
+        }
+        else if (player_on_turn == player1.ID && player1_card.GetSuit() != player2_card.GetSuit() && !player2_card.GetKoz())
+        {
+            HandleHandWinner(player1, player2, player1_card, player2_card);
+
+            PrintPlayersHandsAndPoints();
+
+            if (deck.IsEmpty())
+            {
+                game_state = GameState.Phase2;
+            }
+        }
+        else if (player_on_turn == player1.ID && player1_card.GetSuit() != player2_card.GetSuit() && player2_card.GetKoz())
+        {
+            HandleHandWinner(player2, player1, player1_card, player2_card);
+
+            PrintPlayersHandsAndPoints();
+
+            if (deck.IsEmpty())
+            {
+                game_state = GameState.Phase2;
+            }
+        }
+
+
+
+
+        else if (player1_card.GetPoints() < player2_card.GetPoints() && player1_card.GetSuit() == player2_card.GetSuit())
+        {
+            HandleHandWinner(player2, player1, player1_card, player2_card);
+
+            PrintPlayersHandsAndPoints();
+
+            if (deck.IsEmpty())
+            {
+                game_state = GameState.Phase2;
+            }
+        }
+        else if (player_on_turn == player2.ID && player1_card.GetSuit() != player2_card.GetSuit() && !player1_card.GetKoz())
+        {
+            HandleHandWinner(player2, player1, player1_card, player2_card);
+
+            PrintPlayersHandsAndPoints();
+
+            if (deck.IsEmpty())
+            {
+                game_state = GameState.Phase2;
+            }
+        }
+        else if (player_on_turn == player2.ID && player1_card.GetSuit() != player2_card.GetSuit() && player1_card.GetKoz())
+        {
+            HandleHandWinner(player1, player2, player1_card, player2_card);
+
+            PrintPlayersHandsAndPoints();
+
+            if (deck.IsEmpty())
+            {
+                game_state = GameState.Phase2;
+            }
+        }
+
+        RoundWinner();
     }
 }

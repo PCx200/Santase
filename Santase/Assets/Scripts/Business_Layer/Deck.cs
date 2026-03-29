@@ -171,4 +171,13 @@ public class Deck
             Debug.Log($"{card.GetName()} {card.GetSuit()} {card.GetPoints()}");
         }
     }
+
+    public bool IsEmpty()
+    {
+        if (cards.Count == 0)
+        {
+            return true;
+        }
+        return false;
+    }
 }

@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 public class Player
 {
-    int id;
+    public int ID { get; private set; }
 
     List<Card> hand = new List<Card>();
     int round_points;
@@ -14,9 +13,9 @@ public class Player
     {
             
     }
-    public Player(int id)
+    public Player(int ID)
     {
-        this.id = id;
+        this.ID = ID;
     }
 
     public Card TakeCardFromDeck(Deck deck)
@@ -34,15 +33,15 @@ public class Player
 
     public Card PlayCard(int index)
     {
-        Debug.Log($"Player {id} played card {hand[index].GetName()} of {hand[index].GetSuit()}");
+        Debug.Log($"Player {ID} played card {hand[index].GetName()} of {hand[index].GetSuit()}");
         Card removed = hand[index];
-        hand.RemoveAt(index);
+        //hand.RemoveAt(index); //TODO::SHOULD NOT REMOVE THE CARD FROM THE HAND SINCE THE TURN CAN BE TERMINATED DURING THE SECOND PHASE IF THE SECOND PLAYER DOES NOT GIVE THE CORRECT CARD
         CheckFor20or40(removed);
 
         return removed;
     }
 
-    void CheckFor20or40(Card removed)
+    private void CheckFor20or40(Card removed)
     {
         if (removed.GetName() == "Q")
         {
@@ -89,17 +88,39 @@ public class Player
         {
             cards += $"[{i+1}]" + "("+ hand[i].GetName().ToString() + " " + hand[i].GetSuit().ToString() + ") ";
         }
-        Debug.Log($"Player{id} {cards}");
+        Debug.Log($"Player{ID} {cards}");
     }
 
     public void PrintPoints()
     {
-        Debug.Log($"Player{id} points: {GetRoundPoints()}");
+        Debug.Log($"Player{ID} points: {GetRoundPoints()}");
     }
 
-    //TODO::
-    //public Card Change9Koz()
-    //{ 
-        
-    //}
+    //KOZ == TRUMP CARD (in english)
+    public void Change9Koz(Deck deck)
+    {
+        Card card_9 = new Card();
+        for (int i = 0; i < hand.Count; i++)
+        {
+            if (hand[i].GetName() == "9" && hand[i].GetKoz())
+            {
+                card_9 = hand[i];
+            }
+        }
+       
+
+        if (deck.GetCards().Count > 2 && card_9.GetName() == "9")
+        {
+            hand.Remove(card_9);
+            hand.Add(deck.GetCards().ToArray()[deck.GetCards().Count - 1]);
+            Card exchanged = deck.GetCards().ToArray()[deck.GetCards().Count - 1];
+            deck.GetCards().ToArray()[deck.GetCards().Count - 1] = card_9;
+
+            Debug.Log($"Player{ID} exchanged {card_9.GetName()} of {card_9.GetSuit()} and got {exchanged.GetName()} of {exchanged.GetSuit()}");
+        }
+        else
+        {
+            Debug.Log("Can't exchange!");
+        }
+    }
 }

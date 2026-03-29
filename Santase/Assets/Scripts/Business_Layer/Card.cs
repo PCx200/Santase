@@ -20,6 +20,13 @@ public class Card
         this.points = points;
     }
 
+    public Card(string name, string suit, bool is_koz)
+    {
+        this.name = name;
+        this.suit = suit;
+        this.is_koz = is_koz;
+    }
+
     public string GetName()
     { 
         return name;
