@@ -180,4 +180,16 @@ public class Deck
         }
         return false;
     }
+
+    public void SetLast(Card card)
+    {
+        List<Card> temp = new List<Card>(cards);
+
+        temp[temp.Count - 1] = card;
+
+        temp.Reverse();
+
+        cards = new Stack<Card>(temp);
+    }
+    
 }

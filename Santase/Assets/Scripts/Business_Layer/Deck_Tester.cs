@@ -1,6 +1,10 @@
-using System;
+using JetBrains.Annotations;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Deck_Tester : MonoBehaviour
 {
@@ -26,6 +30,12 @@ public class Deck_Tester : MonoBehaviour
     [SerializeField] Transform player2_hand;
     [SerializeField] Transform koz_transform;
 
+    [SerializeField] Transform player1_card_spot;
+    [SerializeField] Transform player2_card_spot;
+
+    [SerializeField] TextMeshProUGUI player1_score;
+    [SerializeField] TextMeshProUGUI player2_score;
+
     private void Start()
     {
         var sw = new System.Diagnostics.Stopwatch();
@@ -39,11 +49,11 @@ public class Deck_Tester : MonoBehaviour
         player1.PrintHand();
         player2.PrintHand();
 
-        VisualiseHand(player1, player1_hand);
-        VisualiseHand(player2, player2_hand);
+        VisualizeHand(player1, player1_hand);
+        VisualizeHand(player2, player2_hand);
 
         Card koz_card = PutKozAsLastCard();
-        VisualiseKoz(koz_card, koz_transform);
+        VisualizeKoz(koz_card, koz_transform);
 
 
         game_state = GameState.Phase1;
@@ -69,8 +79,27 @@ public class Deck_Tester : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            player1.Change9Koz(deck);
-            player2.Change9Koz(deck);
+            Card card_9 = new Card();
+
+            card_9 = player1.Change9Koz(deck);
+
+            if (card_9 == null)
+            {
+                card_9 = player2.Change9Koz(deck);
+                deck.SetLast(card_9);
+
+                VisualizeKoz(card_9, koz_transform);
+                VisualizeHand(player2, player2_hand);
+            }
+            else
+            {
+                deck.SetLast(card_9);
+ 
+                VisualizeKoz(card_9, koz_transform);
+                VisualizeHand(player1, player1_hand);
+            }
+            
+            
         }
     }
 
@@ -80,11 +109,21 @@ public class Deck_Tester : MonoBehaviour
         {
             case 0: // Player1 Turn
                 player1_card = PlayerPlayCard(player1, input);
+
+                player1.GetHand().Remove(player1_card);
+                VisualizeHand(player1, player1_hand);
+
+                VisualizePlayedCard(player1_card, player1_card_spot);
                 player_on_turn = player2.ID;
                 cards_played++;
                 break;
             case 1: // Player2 Turn
                 player2_card = PlayerPlayCard(player2, input);
+
+                player1.GetHand().Remove(player1_card);
+                VisualizeHand(player2, player2_hand);
+
+                VisualizePlayedCard(player2_card, player2_card_spot);
                 player_on_turn = player1.ID;
                 cards_played++;
                 break;
@@ -102,8 +141,8 @@ public class Deck_Tester : MonoBehaviour
                     DetermineWhoGetsPoints(player1_card, player2_card);
                     player1.GetHand().Remove(player1_card);
                     player2.GetHand().Remove(player2_card);
-                    VisualiseHand(player1, player1_hand);
-                    VisualiseHand(player2, player2_hand);
+                    VisualizeHand(player1, player1_hand);
+                    VisualizeHand(player2, player2_hand);
                     break;
                 case GameState.Phase2: // TODO:: FIX THIS PHASE
                     if (player1_card.GetSuit() == player2_card.GetSuit())
@@ -111,8 +150,8 @@ public class Deck_Tester : MonoBehaviour
                         DetermineWhoGetsPoints(player1_card, player2_card);
                         player1.GetHand().Remove(player1_card);
                         player2.GetHand().Remove(player2_card);
-                        VisualiseHand(player1, player1_hand);
-                        VisualiseHand(player2, player2_hand);
+                        VisualizeHand(player1, player1_hand);
+                        VisualizeHand(player2, player2_hand);
                     }
                     else {
                         Debug.Log("You must play the same suit as the opponent if you have it.");
@@ -149,7 +188,7 @@ public class Deck_Tester : MonoBehaviour
         }
     }
 
-    private void VisualiseHand(Player player, Transform hand_transform)
+    private void VisualizeHand(Player player, Transform hand_transform)
     {
         foreach (Transform child in hand_transform)
         { 
@@ -169,7 +208,7 @@ public class Deck_Tester : MonoBehaviour
         }
     }
 
-    private void VisualiseKoz(Card koz_card, Transform koz_transform)
+    private void VisualizeKoz(Card koz_card, Transform koz_transform)
     {
         Card_Presenter prefab = card_presenters.Find(cp =>
             cp.card_SO.Name == koz_card.GetName() &&
@@ -178,6 +217,19 @@ public class Deck_Tester : MonoBehaviour
 
         Card_Presenter cp = Instantiate(prefab, koz_transform);
         cp.card = koz_card;
+    }
+
+    private void VisualizePlayedCard(Card played_card, Transform played_card_transform)
+    { 
+        Card_Presenter prefab = card_presenters.Find(cp =>
+            cp.card_SO.Name == played_card.GetName() &&
+            cp.card_SO.Suit == played_card.GetSuit()
+            );
+
+        played_card_transform.GetComponent<Image>().sprite = prefab.card_SO.sprite;
+        Color color = played_card_transform.GetComponent<Image>().color;
+        color.a = 1;
+        played_card_transform.GetComponent<Image>().color = color;
     }
 
     private void InitDeck()
@@ -263,15 +315,6 @@ public class Deck_Tester : MonoBehaviour
             winner.TakeCardFromDeck(deck);
             loser.TakeCardFromDeck(deck);
         }
-
-        //if (player1 == winner)
-        //{
-        //    player_on_turn = player1.ID;
-        //}
-        //else
-        //{
-        //    player_on_turn = player2.ID;
-        //}
 
         player_on_turn = player1 == winner ? player1.ID : player2.ID;
 
@@ -393,6 +436,9 @@ public class Deck_Tester : MonoBehaviour
                 game_state = GameState.Phase2;
             }
         }
+
+        player1_score.text = player1.GetRoundPoints().ToString();
+        player2_score.text = player2.GetRoundPoints().ToString();
 
         RoundWinner();
     }

@@ -97,7 +97,7 @@ public class Player
     }
 
     //KOZ == TRUMP CARD (in english)
-    public void Change9Koz(Deck deck)
+    public Card Change9Koz(Deck deck)
     {
         Card card_9 = new Card();
         for (int i = 0; i < hand.Count; i++)
@@ -117,10 +117,12 @@ public class Player
             deck.GetCards().ToArray()[deck.GetCards().Count - 1] = card_9;
 
             Debug.Log($"Player{ID} exchanged {card_9.GetName()} of {card_9.GetSuit()} and got {exchanged.GetName()} of {exchanged.GetSuit()}");
+            return card_9;  
         }
         else
         {
             Debug.Log("Can't exchange!");
+            return null;
         }
     }
 }
