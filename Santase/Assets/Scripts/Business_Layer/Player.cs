@@ -6,8 +6,8 @@ public class Player
     public int ID { get; private set; }
 
     List<Card> hand = new List<Card>();
-    int round_points;
-    int game_points;
+    int roundPoints;
+    int gamePoints;
 
     public Player()
     {
@@ -51,11 +51,11 @@ public class Player
                 {
                     if (removed.GetKoz() == true)
                     {
-                        round_points += 40;
+                        roundPoints += 40;
                     }
                     else
                     {
-                        round_points += 20;
+                        roundPoints += 20;
                     }
                 }
             }
@@ -64,21 +64,21 @@ public class Player
 
     public void AddToRoundPoints(Card card1, Card card2)
     {
-        round_points += card1.GetPoints() + card2.GetPoints();
+        roundPoints += card1.GetPoints() + card2.GetPoints();
     }
     public void AddToGamePoints(byte points)
     {
-        game_points += points;
+        gamePoints += points;
     }
 
     public int GetRoundPoints()
     { 
-        return round_points;
+        return roundPoints;
     }
 
     public int GetGamePoints()
     { 
-        return game_points;
+        return gamePoints;
     }
 
     public void PrintHand()
@@ -124,5 +124,20 @@ public class Player
             Debug.Log("Can't exchange!");
             return null;
         }
+    }
+
+    public void ResetRoundPoints()
+    {
+        roundPoints = 0;
+    }
+
+    public void ResetGamePoints()
+    {
+        gamePoints = 0;
+    }
+
+    public void ClearHand()
+    {
+        hand.Clear();
     }
 }

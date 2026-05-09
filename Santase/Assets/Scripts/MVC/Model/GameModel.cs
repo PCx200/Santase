@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class GameModel
 {
@@ -11,6 +12,7 @@ public class GameModel
     public event Action<Card, int> OnCardPlayed;
     public event Action<Player> OnRoundOver;
     public event Action<string> OnNotification;
+    public event Action<Player> OnMatchOver;
 
     public enum GameState { Preparation, Phase1, Phase2 }
 
@@ -21,11 +23,13 @@ public class GameModel
 
     public GameState gameState = GameState.Preparation;
 
-    int activePlayer = 0;
-    int cardsPlayed = 0;
+    private int activePlayer = 0;
+    private int cardsPlayed = 0;
 
-    Card p1Played;
-    Card p2Played;
+    private Card p1Played;
+    private Card p2Played;
+
+    private Card kozCard;
 
 
     public GameModel()
@@ -42,7 +46,7 @@ public class GameModel
     }
 
     #region Initialization
-    void InitDeck()
+    private void InitDeck()
     {
         for (int i = 0; i < 20; i++)
         {
@@ -52,54 +56,34 @@ public class GameModel
         }
     }
 
-    void DealInitialHands()
+    private void DealInitialHands()
     {
         for (int i = 0; i < 3; i++) player1.TakeCardFromDeck(deck);
         for (int i = 0; i < 3; i++) player2.TakeCardFromDeck(deck);
         for (int i = 0; i < 3; i++) player1.TakeCardFromDeck(deck);
         for (int i = 0; i < 3; i++) player2.TakeCardFromDeck(deck);
-
-        OnHandChanged?.Invoke(0, player1.GetHand());
-        OnHandChanged?.Invoke(1, player2.GetHand());
     }
 
-    void DetermineKoz()
+    private void DetermineKoz()
     {
         List<Card> temp = new List<Card>(deck.GetCards());
         temp.Reverse();
 
-        Card koz = temp[12];
+        kozCard = temp[11];
+        kozCard.SetKoz(true);
 
         foreach (Card c in deck.GetCards())
         {
-            if (c.GetSuit() == koz.GetSuit())
+            if (c.GetSuit() == kozCard.GetSuit())
                 c.SetKoz(true);
         }
 
-        OnKozChanged?.Invoke(koz);
+        Debug.Log(kozCard.GetName());
     }
 
-    void PutKozAsLastCard()
+    private void PutKozAsLastCard()
     {
-        List<Card> temp = new List<Card>(deck.GetCards());
-        temp.Reverse();
-
-        Card koz = temp.Find(c => c.GetKoz());
-        if (koz == null)
-            return;
-
-        temp.Remove(koz);
-        temp.Insert(0, koz);
-
-        temp.Reverse();
-
-        while (!deck.IsEmpty())
-            deck.GetCards().Pop();
-
-        foreach (var c in temp)
-            deck.GetCards().Push(c);
-
-        OnKozChanged?.Invoke(koz);
+        deck.SetLast(kozCard);
     }
     #endregion
 
@@ -158,6 +142,7 @@ public class GameModel
         Player player = playerID == 0 ? player1 : player2;
 
         Card exchanged = player.Change9Koz(deck);
+        PutKozAsLastCard();
 
         if (exchanged == null)
         {
@@ -165,13 +150,11 @@ public class GameModel
             return;
         }
 
-        PutKozAsLastCard();
-
         OnHandChanged?.Invoke(playerID, player.GetHand());
         OnKozChanged?.Invoke(exchanged);
     }
 
-    void ResolveHand()
+    private void ResolveHand()
     {
         // PHASE 2 INVALID MOVE CHECK
         if (gameState == GameState.Phase2)
@@ -273,7 +256,7 @@ public class GameModel
         OnTurnChanged?.Invoke(activePlayer);
     }
 
-    void ReturnPlayedCardsToHands()
+    private void ReturnPlayedCardsToHands()
     {
         if (p1Played != null) player1.GetHand().Add(p1Played);
         if (p2Played != null) player2.GetHand().Add(p2Played);
@@ -283,15 +266,17 @@ public class GameModel
     }
 
 
-    Player DetermineRoundWinner()
+    private Player DetermineRoundWinner()
     {
+        Player winner = null;
+
         if (player1.GetRoundPoints() >= 66)
         {
             if (player2.GetRoundPoints() == 0) player1.AddToGamePoints(3);
             else if (player2.GetRoundPoints() < 33) player1.AddToGamePoints(2);
             else player1.AddToGamePoints(1);
 
-            return player1;
+            winner = player1;
         }
 
         if (player2.GetRoundPoints() >= 66)
@@ -300,10 +285,63 @@ public class GameModel
             else if (player1.GetRoundPoints() < 33) player2.AddToGamePoints(2);
             else player2.AddToGamePoints(1);
 
-            return player2;
+            winner = player2;
         }
 
-        return null;
+        if (winner != null && winner.GetGamePoints() >= 11)
+        {
+            OnMatchOver?.Invoke(winner);
+            return winner;
+        }
+
+        return winner;
     }
+
+    public void RestartRound()
+    {
+        player1.ResetRoundPoints();
+        player2.ResetRoundPoints();
+
+        player1.ClearHand();
+        player2.ClearHand();
+
+        deck = new Deck();
+        InitDeck();
+        DetermineKoz();
+        PutKozAsLastCard();
+        DealInitialHands();
+
+        activePlayer = 0;
+        cardsPlayed = 0;
+        gameState = GameState.Phase1;
+
+        OnHandChanged?.Invoke(0, player1.GetHand());
+        OnHandChanged?.Invoke(1, player2.GetHand());
+        OnKozChanged?.Invoke(kozCard);
+        OnScoreChanged?.Invoke(player1.GetRoundPoints(), player2.GetRoundPoints());
+        OnTurnChanged?.Invoke(activePlayer);
+    }
+    public void RestartMatch()
+    {
+        player1.ResetGamePoints();
+        player2.ResetGamePoints();
+        RestartRound();
+    }
+    #endregion
+
+    #region Helper Methods
+    public int GetActivePlayer()
+    {
+        return activePlayer;
+    }
+    public void ForceFullUpdate()
+    {
+        OnHandChanged?.Invoke(0, player1.GetHand());
+        OnHandChanged?.Invoke(1, player2.GetHand());
+        OnKozChanged?.Invoke(kozCard);
+        OnScoreChanged?.Invoke(player1.GetRoundPoints(), player2.GetRoundPoints());
+        OnTurnChanged?.Invoke(activePlayer);
+    }
+
     #endregion
 }
