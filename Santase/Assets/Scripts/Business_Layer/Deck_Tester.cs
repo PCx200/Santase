@@ -24,7 +24,7 @@ public class Deck_Tester : MonoBehaviour
     public enum GameState { Preparation, Phase1, Phase2 }
     [SerializeField] GameState game_state;
 
-    bool is_round_finished;
+    //bool is_round_finished;
 
     [SerializeField] Transform player1_hand;
     [SerializeField] Transform player2_hand;
@@ -337,7 +337,7 @@ public class Deck_Tester : MonoBehaviour
             {
                 player1.AddToGamePoints(1);
             }
-            is_round_finished = true;
+            //is_round_finished = true;
             Debug.Log("Player1 WON!");
             return player1;
         }
@@ -356,7 +356,7 @@ public class Deck_Tester : MonoBehaviour
             {
                 player2.AddToGamePoints(1);
             }
-            is_round_finished = true;
+            //is_round_finished = true;
             Debug.Log("Player2 WON!");
             return player2;
         }

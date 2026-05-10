@@ -165,7 +165,7 @@ public class Deck
     public void PrintDeck()
     {
         Stack<Card> temp_deck = new Stack<Card>(cards);
-        for (int i = 0; i < size; i++)
+        for (int i = 0; i < temp_deck.Count; i++)
         {
             Card card = temp_deck.Pop();
             Debug.Log($"{card.GetName()} {card.GetSuit()} {card.GetPoints()}");

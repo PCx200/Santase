@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class GameModel
@@ -10,8 +11,10 @@ public class GameModel
     public event Action<int, int> OnScoreChanged;
     public event Action<int> OnTurnChanged;
     public event Action<Card, int> OnCardPlayed;
-    public event Action<Player> OnRoundOver;
+    public event Action OnTrickEnded;
+    public event Action<Player, (int,int)> OnRoundOver;
     public event Action<string> OnNotification;
+    public event Action OnStateChanged;
     public event Action<Player> OnMatchOver;
 
     public enum GameState { Preparation, Phase1, Phase2 }
@@ -23,7 +26,9 @@ public class GameModel
 
     public GameState gameState = GameState.Preparation;
 
+    private int trick = 0;
     private int activePlayer = 0;
+    private int trickLeader;
     private int cardsPlayed = 0;
 
     private Card p1Played;
@@ -36,8 +41,8 @@ public class GameModel
     {
         InitDeck();
         DetermineKoz();
-        PutKozAsLastCard();
         DealInitialHands();
+        PutKozAsLastCard();
 
         gameState = GameState.Phase1;
 
@@ -66,24 +71,48 @@ public class GameModel
 
     private void DetermineKoz()
     {
-        List<Card> temp = new List<Card>(deck.GetCards());
-        temp.Reverse();
+        List<Card> temp_cards = new List<Card>();
+        Queue<Card> temp_deck = new Queue<Card>(deck.GetCards());
 
-        kozCard = temp[11];
-        kozCard.SetKoz(true);
-
-        foreach (Card c in deck.GetCards())
+        for (int i = 23; i >= 0; i--)
         {
-            if (c.GetSuit() == kozCard.GetSuit())
-                c.SetKoz(true);
+            temp_cards.Add(temp_deck.Dequeue());
         }
+        //THE KOZ IS ALWAYS THE 13th ELEMENT!
+        kozCard = temp_cards[12];
+        Debug.Log($"KOZ IS: {temp_cards[12].GetName()} {temp_cards[12].GetSuit()}");
+        Debug.Log(deck.GetCards().Count);
 
-        Debug.Log(kozCard.GetName());
+        foreach (Card card in deck.GetCards())
+        {
+            if (card.GetSuit() == temp_cards[12].GetSuit())
+            {
+                card.SetKoz(true);
+                Debug.Log($"{card.GetName()} {card.GetSuit()} IS KOZ");
+            }
+        }
     }
 
     private void PutKozAsLastCard()
     {
-        deck.SetLast(kozCard);
+        Stack<Card> stack = deck.GetCards();
+        List<Card> topToBottom = new List<Card>(stack.Count);
+        while (stack.Count > 0)
+            topToBottom.Add(stack.Pop());
+
+        if (!topToBottom.Remove(kozCard))
+        {
+            Debug.LogError("PutKozAsLastCard: kozCard not found in deck order.");
+            for (int i = topToBottom.Count - 1; i >= 0; i--)
+                stack.Push(topToBottom[i]);
+            return;
+        }
+        topToBottom.Add(kozCard);
+
+        for (int i = topToBottom.Count - 1; i >= 0; i--)
+            stack.Push(topToBottom[i]);
+
+        Debug.Log($"Koz at bottom of deck: {kozCard.GetName()} {kozCard.GetSuit()}");
     }
     #endregion
 
@@ -104,7 +133,11 @@ public class GameModel
             return;
         }
 
+        if (cardsPlayed == 0)
+            trickLeader = activePlayer;
+
         Card played = player.PlayCard(cardIndex);
+        player.GetHand().Remove(played);
 
         if (playerID == 0)
             p1Played = played;
@@ -122,11 +155,18 @@ public class GameModel
         }
 
         activePlayer = 1 - activePlayer;
+        OnHandChanged?.Invoke(playerID, player.GetHand());
         OnTurnChanged?.Invoke(activePlayer);
     }
 
     public void RequestExchangeKoz(int playerID)
     {
+        if (trick == 0)
+        {
+            OnNotification?.Invoke("You cannot exchange the Koz during the first trick.");
+            return;
+        }
+
         if (playerID != activePlayer)
         {
             OnNotification?.Invoke("Not your turn.");
@@ -141,17 +181,18 @@ public class GameModel
 
         Player player = playerID == 0 ? player1 : player2;
 
-        Card exchanged = player.Change9Koz(deck);
-        PutKozAsLastCard();
+        Card card9 = player.Change9Koz(deck);
+        deck.SetLast(card9);
+        deck.PrintDeck();
 
-        if (exchanged == null)
+        if (card9 == null)
         {
             OnNotification?.Invoke("You cannot exchange the koz card.");
             return;
         }
 
         OnHandChanged?.Invoke(playerID, player.GetHand());
-        OnKozChanged?.Invoke(exchanged);
+        OnKozChanged?.Invoke(card9);
     }
 
     private void ResolveHand()
@@ -189,31 +230,37 @@ public class GameModel
         if (c1.GetPoints() > c2.GetPoints() && c1.GetSuit() == c2.GetSuit())
         {
             winner = player1; loser = player2;
+            Debug.Log("Case 1");
         }
 
-        else if (activePlayer == player1.ID && c1.GetSuit() != c2.GetSuit() && !c2.GetKoz())
+        else if (trickLeader == player1.ID && c1.GetSuit() != c2.GetSuit() && !c2.GetKoz())
         {
             winner = player1; loser = player2;
+            Debug.Log("Case 2");
         }
 
-        else if (activePlayer == player1.ID && c1.GetSuit() != c2.GetSuit() && c2.GetKoz())
+        else if (trickLeader == player1.ID && c1.GetSuit() != c2.GetSuit() && c2.GetKoz())
         {
             winner = player2; loser = player1;
+            Debug.Log("Case 3");
         }
 
         else if (c1.GetPoints() < c2.GetPoints() && c1.GetSuit() == c2.GetSuit())
         {
             winner = player2; loser = player1;
+            Debug.Log("Case 4");
         }
 
-        else if (activePlayer == player2.ID && c1.GetSuit() != c2.GetSuit() && !c1.GetKoz())
+        else if (trickLeader == player2.ID && c1.GetSuit() != c2.GetSuit() && !c1.GetKoz())
         {
             winner = player2; loser = player1;
+            Debug.Log("Case 5");
         }
 
-        else if (activePlayer == player2.ID && c1.GetSuit() != c2.GetSuit() && c1.GetKoz())
+        else if (trickLeader == player2.ID && c1.GetSuit() != c2.GetSuit() && c1.GetKoz())
         {
             winner = player1; loser = player2;
+            Debug.Log("Case 6");
         }
 
 
@@ -227,6 +274,7 @@ public class GameModel
         OnHandChanged?.Invoke(1, player2.GetHand());
 
         OnScoreChanged?.Invoke(player1.GetRoundPoints(), player2.GetRoundPoints());
+        OnTrickEnded?.Invoke();
 
 
         if (gameState == GameState.Phase1 && deck.GetCards().Count >= 2)
@@ -240,17 +288,19 @@ public class GameModel
 
 
         if (deck.IsEmpty())
+        { 
             gameState = GameState.Phase2;
-
+            OnStateChanged?.Invoke();
+        }    
 
         Player roundWinner = DetermineRoundWinner();
         if (roundWinner != null)
         {
-            OnRoundOver?.Invoke(roundWinner);
+            OnRoundOver?.Invoke(roundWinner, (player1.GetGamePoints(),player2.GetGamePoints()));
             return;
         }
 
-
+        trick++;
         activePlayer = winner.ID;
         cardsPlayed = 0;
         OnTurnChanged?.Invoke(activePlayer);
@@ -311,6 +361,7 @@ public class GameModel
         PutKozAsLastCard();
         DealInitialHands();
 
+        trick = 0;
         activePlayer = 0;
         cardsPlayed = 0;
         gameState = GameState.Phase1;

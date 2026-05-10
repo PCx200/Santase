@@ -35,7 +35,6 @@ public class Player
     {
         Debug.Log($"Player {ID} played card {hand[index].GetName()} of {hand[index].GetSuit()}");
         Card removed = hand[index];
-        //hand.RemoveAt(index); //TODO::SHOULD NOT REMOVE THE CARD FROM THE HAND SINCE THE TURN CAN BE TERMINATED DURING THE SECOND PHASE IF THE SECOND PLAYER DOES NOT GIVE THE CORRECT CARD
         CheckFor20or40(removed);
 
         return removed;

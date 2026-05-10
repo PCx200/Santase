@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System;
 
 public class GameController : MonoBehaviour
 {
@@ -13,6 +15,7 @@ public class GameController : MonoBehaviour
     [SerializeField] TurnView turnView;
     [SerializeField] NotificationView notificationView;
     [SerializeField] RoundOverView roundOverView;
+    [SerializeField] DeckView deckView;
 
     private void Start()
     {
@@ -23,8 +26,10 @@ public class GameController : MonoBehaviour
         model.OnScoreChanged += HandleScoreChanged;
         model.OnTurnChanged += HandleTurnChanged;
         model.OnCardPlayed += HandleCardPlayed;
+        model.OnTrickEnded += HandleTrickEnded;
         model.OnRoundOver += HandleRoundOver;
         model.OnNotification += HandleNotification;
+        model.OnStateChanged += HandleStateChanged;
 
         model.ForceFullUpdate();
     }
@@ -63,9 +68,14 @@ public class GameController : MonoBehaviour
         kozView.UpdateKoz(koz);
     }
 
+    private void HandleStateChanged()
+    {
+        deckView.OnSecondPhase();
+    }
+
     private void HandleScoreChanged(int p1, int p2)
     {
-        scoreView.UpdateScore(p1, p2);
+        scoreView.UpdateRoundScore(p1, p2);
     }
 
     private void HandleTurnChanged(int playerID)
@@ -73,14 +83,20 @@ public class GameController : MonoBehaviour
         turnView.UpdateTurn(playerID);
     }
 
+    private void HandleTrickEnded()
+    {
+       StartCoroutine(playedCardView.ResetAfterTrick());
+    }
+
     private void HandleCardPlayed(Card card, int playerID)
     {
         playedCardView.ShowCard(card, playerID);
     }
 
-    private void HandleRoundOver(Player winner)
+    private void HandleRoundOver(Player winner, (int,int) gamePoints)
     {
         roundOverView.ShowWinner(winner.ID);
+        scoreView.UpdateGameScore(gamePoints.Item1, gamePoints.Item2);
 
         if (winner.GetGamePoints() >= 11)
         {

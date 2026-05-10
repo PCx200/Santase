@@ -1,11 +1,14 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using static UnityEngine.GraphicsBuffer;
 
 public class PlayedCardView : MonoBehaviour
 {
     [SerializeField] Image player1Spot;
     [SerializeField] Image player2Spot;
+    [SerializeField] Sprite backFace;
     [SerializeField] List<Card_Presenter> cardPresenters;
 
     public void ShowCard(Card card, int playerID)
@@ -21,5 +24,18 @@ public class PlayedCardView : MonoBehaviour
         var c = target.color;
         c.a = 1;
         target.color = c;
+    }
+
+    public IEnumerator ResetAfterTrick()
+    {
+        yield return new WaitForSeconds(0.5f);
+        player1Spot.sprite = backFace;
+        player2Spot.sprite = backFace;
+
+        var c = player1Spot.color;
+        c.a = 0.1f;
+
+        player1Spot.color = c;
+        player2Spot.color = c;
     }
 }
