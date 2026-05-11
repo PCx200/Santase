@@ -13,18 +13,20 @@ public class GameModel
     public event Action<int> OnTurnChanged;
     public event Action<Card, int> OnCardPlayed;
     public event Action OnTrickEnded;
-    public event Action<Player, (int,int)> OnRoundOver;
+    public event Action<int, (int,int)> OnRoundOver; // <winnerID, (points1, points2)>
     public event Action<int> OnDeckClosed;
     public event Action<string> OnNotification;
     public event Action OnStateChanged;
-    public event Action<Player> OnMatchOver;
+    public event Action<int> OnMatchOver;
 
     public enum GameState { Preparation, Phase1, Phase2, Closed }
+
+    private int seed;
 
     private Player player1 = new Player(0);
     private Player player2 = new Player(1);
 
-    private Deck deck = new Deck();
+    private Deck deck;
 
     private GameState gameState = GameState.Preparation;
 
@@ -41,8 +43,11 @@ public class GameModel
     private Card kozCard;
 
 
-    public GameModel()
+    public GameModel(int seed)
     {
+        this.seed = seed;
+        deck = new Deck(seed);
+
         InitDeck();
         DetermineKoz();
         DealInitialHands();
@@ -298,10 +303,6 @@ public class GameModel
 
         winner.AddToRoundPoints(c1, c2);
 
-
-        player1.GetHand().Remove(c1);
-        player2.GetHand().Remove(c2);
-
         OnHandChanged?.Invoke(0, player1.GetHand());
         OnHandChanged?.Invoke(1, player2.GetHand());
 
@@ -328,7 +329,7 @@ public class GameModel
         Player roundWinner = DetermineRoundWinner();
         if (roundWinner != null)
         {
-            OnRoundOver?.Invoke(roundWinner, (player1.GetGamePoints(),player2.GetGamePoints()));
+            OnRoundOver?.Invoke(roundWinner.ID, (player1.GetGamePoints(),player2.GetGamePoints()));
             return;
         }
 
@@ -393,7 +394,7 @@ public class GameModel
 
         if (winner != null && winner.GetGamePoints() >= 11)
         {
-            OnMatchOver?.Invoke(winner);
+            OnMatchOver?.Invoke(winner.ID);
             return winner;
         }
 
@@ -408,7 +409,9 @@ public class GameModel
         player1.ClearHand();
         player2.ClearHand();
 
-        deck = new Deck();
+        System.Random rand = new System.Random();
+        seed = rand.Next(int.MinValue, int.MaxValue);
+        deck = new Deck(seed);
         InitDeck();
         DetermineKoz();
         PutKozAsLastCard();

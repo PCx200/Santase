@@ -19,7 +19,9 @@ public class GameController : MonoBehaviour
 
     private void Start()
     {
-        model = new GameModel();
+        System.Random rand = new System.Random();
+        int seed = rand.Next(int.MinValue, int.MaxValue);
+        model = new GameModel(seed);
 
         model.OnHandChanged += HandleHandChanged;
         model.OnKozChanged += HandleKozChanged;
@@ -31,6 +33,7 @@ public class GameController : MonoBehaviour
         model.OnDeckClosed += HandleDeckClosed;
         model.OnNotification += HandleNotification;
         model.OnStateChanged += HandleDisableDeckView;
+        model.OnMatchOver += HandleMatchOver;
 
         model.ForceFullUpdate();
     }
@@ -105,23 +108,20 @@ public class GameController : MonoBehaviour
         playedCardView.ShowCard(card, playerID);
     }
 
-    private void HandleRoundOver(Player winner, (int,int) gamePoints)
+    private void HandleRoundOver(int winnerID, (int,int) gamePoints)
     {
-        roundOverView.ShowWinner(winner.ID);
+        roundOverView.ShowWinner(winnerID);
         scoreView.UpdateGameScore(gamePoints.Item1, gamePoints.Item2);
-
-        if (winner.GetGamePoints() >= 11)
-        {
-            Invoke(nameof(RestartMatch), 2f);
-            return;
-        }
 
         Invoke(nameof(RestartRound), 2f);
         Invoke(nameof(DisableRoundOverPanel), 2f);
         Invoke(nameof(EnableDeckView), 2f);
         Invoke(nameof(DisableClosedDeck), 2f);
+    }
 
-
+    private void HandleMatchOver(int winnerID)
+    {
+        Invoke(nameof(RestartMatch), 2f);
     }
 
     private void HandleNotification(string msg)

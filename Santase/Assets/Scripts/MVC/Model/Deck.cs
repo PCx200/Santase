@@ -4,12 +4,16 @@ using System.IO;
 
 public class Deck
 {
+    // Unity: StreamingAssets. Otherwise: still only use a relative path! (Or AppData)
     string card_data_path = "C:\\Users\\ACER\\Documents\\Santase\\Santase\\Assets\\Scripts\\Data_Layer\\Cards.txt";
     Stack<Card> cards = new Stack<Card>();
     public const int size = 24;
 
-    public Deck()
+    private System.Random rand;
+
+    public Deck(int seed)
     {
+        rand = new System.Random(seed);
         FillDeckFromFile();
     }
 
@@ -44,8 +48,7 @@ public class Deck
 
         for (int i = 0; i < size; i++)
         {
-            System.Random random = new System.Random();
-            int card_index = random.Next(temp_deck.Count);
+            int card_index = rand.Next(temp_deck.Count);
             shuffled_deck.Add(temp_deck[card_index]);
             temp_deck.Remove(temp_deck[card_index]);
         }
@@ -62,8 +65,6 @@ public class Deck
     { 
         Stack<Card> temp_stack1 = new Stack<Card>();
         Stack<Card> temp_stack2 = new Stack<Card>();
-
-        System.Random rand = new System.Random();
 
         int cards_lifted = rand.Next(3, 22);
         int cards_left = cards.Count - cards_lifted;
@@ -100,8 +101,7 @@ public class Deck
         List<Card> temp_pile1 = new List<Card>();
         List<Card> temp_pile2 = new List<Card>();
 
-        System.Random random = new System.Random();
-        int pile1_cards = random.Next(10, 14);
+        int pile1_cards = rand.Next(10, 14);
         int pile2_cards = size - pile1_cards; 
 
         for (int i = 0; i < pile1_cards; i++)
