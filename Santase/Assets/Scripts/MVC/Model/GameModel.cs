@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameModel
@@ -13,23 +14,26 @@ public class GameModel
     public event Action<Card, int> OnCardPlayed;
     public event Action OnTrickEnded;
     public event Action<Player, (int,int)> OnRoundOver;
+    public event Action<int> OnDeckClosed;
     public event Action<string> OnNotification;
     public event Action OnStateChanged;
     public event Action<Player> OnMatchOver;
 
-    public enum GameState { Preparation, Phase1, Phase2 }
+    public enum GameState { Preparation, Phase1, Phase2, Closed }
 
-    public Player player1 = new Player(0);
-    public Player player2 = new Player(1);
+    private Player player1 = new Player(0);
+    private Player player2 = new Player(1);
 
-    public Deck deck = new Deck();
+    private Deck deck = new Deck();
 
-    public GameState gameState = GameState.Preparation;
+    private GameState gameState = GameState.Preparation;
 
     private int trick = 0;
     private int activePlayer = 0;
-    private int trickLeader;
+    private int trickLeader = -1; //Whoever got the previous hand
     private int cardsPlayed = 0;
+
+    private int playerWhoClosed;
 
     private Card p1Played;
     private Card p2Played;
@@ -183,7 +187,6 @@ public class GameModel
 
         Card card9 = player.Change9Koz(deck);
         deck.SetLast(card9);
-        deck.PrintDeck();
 
         if (card9 == null)
         {
@@ -195,10 +198,38 @@ public class GameModel
         OnKozChanged?.Invoke(card9);
     }
 
+    public void RequestCloseDeck(int playerID)
+    {
+        if (trick == 0)
+        {
+            OnNotification?.Invoke("You cannot close the Deck during the first trick.");
+            return;
+        }
+
+        if (deck.GetCards().Count <= 2)
+        {
+            OnNotification?.Invoke("You cannot close the Deck if there are 2 cards left in the deck.");
+            return;
+        }
+
+        if (playerID != trickLeader)
+        {
+            OnNotification?.Invoke("Not your turn.");
+            return;
+        }
+
+        gameState = GameState.Closed;
+        OnNotification?.Invoke($"Player: {playerID} closed the deck");
+        playerWhoClosed = playerID;
+
+        OnDeckClosed?.Invoke(playerID);
+
+    }
+
     private void ResolveHand()
     {
         // PHASE 2 INVALID MOVE CHECK
-        if (gameState == GameState.Phase2)
+        if (gameState == GameState.Phase2 || gameState == GameState.Closed)
         {
             Player leader = activePlayer == 0 ? player1 : player2;
             Player follower = activePlayer == 0 ? player2 : player1;
@@ -214,6 +245,7 @@ public class GameModel
                 cardsPlayed = 0;
 
                 OnNotification?.Invoke("You must follow suit if possible.");
+                OnTrickEnded?.Invoke();
                 OnHandChanged?.Invoke(0, player1.GetHand());
                 OnHandChanged?.Invoke(1, player2.GetHand());
                 return;
@@ -302,6 +334,7 @@ public class GameModel
 
         trick++;
         activePlayer = winner.ID;
+        trickLeader = activePlayer;
         cardsPlayed = 0;
         OnTurnChanged?.Invoke(activePlayer);
     }
@@ -319,6 +352,26 @@ public class GameModel
     private Player DetermineRoundWinner()
     {
         Player winner = null;
+
+        if (gameState == GameState.Closed && player1.GetHand().Count == 0 || player2.GetHand().Count == 0)
+        {
+            if (player1.ID == playerWhoClosed && player1.GetRoundPoints() < 66)
+            {
+                if (player1.GetRoundPoints() == 0) player2.AddToGamePoints(3);
+                else player2.AddToGamePoints(2);
+
+                winner = player2;
+
+            }
+            if (player2.ID == playerWhoClosed && player2.GetRoundPoints() < 66)
+            {
+                if (player2.GetRoundPoints() == 0) player1.AddToGamePoints(3);
+                else player1.AddToGamePoints(2);
+
+                winner = player1;
+
+            }
+        }
 
         if (player1.GetRoundPoints() >= 66)
         {
@@ -364,8 +417,10 @@ public class GameModel
         trick = 0;
         activePlayer = 0;
         cardsPlayed = 0;
+        playerWhoClosed = -1;
         gameState = GameState.Phase1;
 
+        OnStateChanged?.Invoke();
         OnHandChanged?.Invoke(0, player1.GetHand());
         OnHandChanged?.Invoke(1, player2.GetHand());
         OnKozChanged?.Invoke(kozCard);

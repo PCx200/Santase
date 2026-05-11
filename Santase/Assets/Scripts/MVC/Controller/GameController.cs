@@ -28,12 +28,24 @@ public class GameController : MonoBehaviour
         model.OnCardPlayed += HandleCardPlayed;
         model.OnTrickEnded += HandleTrickEnded;
         model.OnRoundOver += HandleRoundOver;
+        model.OnDeckClosed += HandleDeckClosed;
         model.OnNotification += HandleNotification;
-        model.OnStateChanged += HandleStateChanged;
+        model.OnStateChanged += HandleDisableDeckView;
 
         model.ForceFullUpdate();
     }
 
+    private void HandleDeckClosed(int playerID)
+    {
+        deckView.EnableDeckView(false);
+        deckView.CloseDeck(true);
+    }
+
+    public void CloseDeck()
+    {
+        int playerID = model.GetActivePlayer();
+        model.RequestCloseDeck(playerID);
+    }
 
     public void PlayCard(int cardIndex)
     {
@@ -68,9 +80,9 @@ public class GameController : MonoBehaviour
         kozView.UpdateKoz(koz);
     }
 
-    private void HandleStateChanged()
+    private void HandleDisableDeckView()
     {
-        deckView.OnSecondPhase();
+        deckView.EnableDeckView(false);
     }
 
     private void HandleScoreChanged(int p1, int p2)
@@ -106,6 +118,9 @@ public class GameController : MonoBehaviour
 
         Invoke(nameof(RestartRound), 2f);
         Invoke(nameof(DisableRoundOverPanel), 2f);
+        Invoke(nameof(EnableDeckView), 2f);
+        Invoke(nameof(DisableClosedDeck), 2f);
+
 
     }
 
@@ -117,5 +132,15 @@ public class GameController : MonoBehaviour
     private void DisableRoundOverPanel()
     {
         roundOverView.DisablePanel();
+    }
+
+    private void EnableDeckView()
+    {
+        deckView.EnableDeckView(true);
+    }
+
+    private void DisableClosedDeck()
+    {
+        deckView.CloseDeck(false);
     }
 }
