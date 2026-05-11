@@ -3,6 +3,7 @@ using UnityEngine.UI;
 
 public class CardClickController : MonoBehaviour
 {
+    public int playerID;
     public int cardIndex;
 
     GameController controller;
@@ -15,6 +16,6 @@ public class CardClickController : MonoBehaviour
 
     void OnClick()
     {
-        controller.PlayCard(cardIndex);
+        controller.PlayCard(playerID ,cardIndex);
     }
 }

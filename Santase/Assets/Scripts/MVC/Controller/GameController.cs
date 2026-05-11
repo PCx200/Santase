@@ -7,6 +7,9 @@ public class GameController : MonoBehaviour
 {
     GameModel model;
 
+    [Header("Multiplayer")]
+    public int localPlayerID = -1;
+
     [Header("Views")]
     [SerializeField] HandView handView;
     [SerializeField] KozView kozView;
@@ -19,6 +22,11 @@ public class GameController : MonoBehaviour
 
     private void Start()
     {
+        if (localPlayerID == -1)
+            localPlayerID = 0;
+
+        handView.localPlayerID = localPlayerID;
+
         System.Random rand = new System.Random();
         int seed = rand.Next(int.MinValue, int.MaxValue);
         model = new GameModel(seed);
@@ -50,9 +58,10 @@ public class GameController : MonoBehaviour
         model.RequestCloseDeck(playerID);
     }
 
-    public void PlayCard(int cardIndex)
+    public void PlayCard(int playerID, int cardIndex)
     {
-        int playerID = model.GetActivePlayer();
+        if (playerID != model.GetActivePlayer())
+            return;
         model.RequestPlayCard(playerID, cardIndex);
     }
 

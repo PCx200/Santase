@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: -7310771551165277464}
   - component: {fileID: 5860394746124072732}
   - component: {fileID: 4804208165230764775}
+  - component: {fileID: 3831652797676843235}
   m_Layer: 0
   m_Name: Player1_Back
   m_TagString: Untagged
@@ -96,3 +97,16 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
+--- !u!114 &3831652797676843235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7566471048781242813}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2725b3eedb47b1c468dfac4e2ee06e63, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Card_Presenter
+  card_SO: {fileID: 11400000, guid: b7e608a406509ea4bb813201053ea58a, type: 2}

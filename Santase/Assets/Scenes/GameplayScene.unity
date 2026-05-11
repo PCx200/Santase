@@ -1530,6 +1530,8 @@ MonoBehaviour:
   - {fileID: 8054206756184669986, guid: 48a4a3b9766ec6846b9b01bef243d76b, type: 3}
   - {fileID: 7674503836714268557, guid: 394b54ae8fbff734988b472a4cf7953d, type: 3}
   - {fileID: 6256131058745161801, guid: c5a6f9895408ee34b92668b81d4848c8, type: 3}
+  cardBack: {fileID: 3831652797676843235, guid: cc3381a366db7964bb670174a9b947c8, type: 3}
+  localPlayerID: 0
 --- !u!4 &871302146
 Transform:
   m_ObjectHideFlags: 0
@@ -1574,6 +1576,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 84b1007cdfd3ab64d86118c47f5c2ac2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameController
+  localPlayerID: -1
   handView: {fileID: 871302145}
   kozView: {fileID: 1257843970}
   playedCardView: {fileID: 1684006373}
