@@ -5,8 +5,8 @@ public class HandView : MonoBehaviour
 {
     [SerializeField] Transform player1HandRoot;
     [SerializeField] Transform player2HandRoot;
-    [SerializeField] List<Card_Presenter> cardPresenters;
-    [SerializeField] private Card_Presenter cardBack;
+    [SerializeField] List<CardPresenter> cardPresenters;
+    [SerializeField] private CardPresenter cardBack;
 
     public int localPlayerID;
 
@@ -23,7 +23,7 @@ public class HandView : MonoBehaviour
         {
             Card card = hand[i];
 
-            Card_Presenter prefab;
+            CardPresenter prefab;
 
             if (isLocal)
             {
@@ -36,7 +36,7 @@ public class HandView : MonoBehaviour
                 prefab = cardBack;
             }
 
-            Card_Presenter presenter = Instantiate(prefab, root);
+            CardPresenter presenter = Instantiate(prefab, root);
             presenter.card = card;
 
             if (isLocal)

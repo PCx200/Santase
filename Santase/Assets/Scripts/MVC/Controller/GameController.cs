@@ -112,9 +112,9 @@ public class GameController : MonoBehaviour
        StartCoroutine(playedCardView.ResetAfterTrick());
     }
 
-    private void HandleCardPlayed(Card card, int playerID)
+    private void HandleCardPlayed(int playerID, Card card)
     {
-        playedCardView.ShowCard(card, playerID);
+        playedCardView.ShowCard(playerID, card);
     }
 
     private void HandleRoundOver(int winnerID, (int,int) gamePoints)

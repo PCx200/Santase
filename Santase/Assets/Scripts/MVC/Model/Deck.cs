@@ -5,7 +5,7 @@ using System.IO;
 public class Deck
 {
     // Unity: StreamingAssets. Otherwise: still only use a relative path! (Or AppData)
-    string card_data_path = "C:\\Users\\ACER\\Documents\\Santase\\Santase\\Assets\\Scripts\\Data_Layer\\Cards.txt";
+    string card_data_path = "C:\\Users\\ACER\\Documents\\Santase\\Santase\\Assets\\Scripts\\DataLayer\\Cards.txt";
     Stack<Card> cards = new Stack<Card>();
     public const int size = 24;
 

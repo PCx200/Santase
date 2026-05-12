@@ -9,11 +9,11 @@ public class PlayedCardView : MonoBehaviour
     [SerializeField] Image player1Spot;
     [SerializeField] Image player2Spot;
     [SerializeField] Sprite backFace;
-    [SerializeField] List<Card_Presenter> cardPresenters;
+    [SerializeField] List<CardPresenter> cardPresenters;
 
-    public void ShowCard(Card card, int playerID)
+    public void ShowCard(int playerID, Card card)
     {
-        Card_Presenter prefab = cardPresenters.Find(cp =>
+        CardPresenter prefab = cardPresenters.Find(cp =>
             cp.card_SO.Name == card.GetName() &&
             cp.card_SO.Suit == card.GetSuit()
         );

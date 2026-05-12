@@ -11,7 +11,7 @@ public class GameModel
     public event Action<Card> OnKozChanged;
     public event Action<int, int> OnScoreChanged;
     public event Action<int> OnTurnChanged;
-    public event Action<Card, int> OnCardPlayed;
+    public event Action<int, Card> OnCardPlayed;
     public event Action OnTrickEnded;
     public event Action<int, (int,int)> OnRoundOver; // <winnerID, (points1, points2)>
     public event Action<int> OnDeckClosed;
@@ -153,7 +153,7 @@ public class GameModel
         else
             p2Played = played;
 
-        OnCardPlayed?.Invoke(played, playerID);
+        OnCardPlayed?.Invoke(playerID, played);
 
         cardsPlayed++;
 
