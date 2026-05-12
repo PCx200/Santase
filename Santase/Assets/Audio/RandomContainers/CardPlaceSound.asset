@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1233149941 &-8746612070511928342
+AudioContainerElement:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CardSound8_{-8746612070511928342}
+  m_AudioClip: {fileID: 8300000, guid: 5729c65e3936ab44bb93fd7912f572c7, type: 3}
+  m_Volume: 0
+  m_Enabled: 1
+--- !u!1233149941 &-6564301754986303989
+AudioContainerElement:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CardSound4_{-6564301754986303989}
+  m_AudioClip: {fileID: 8300000, guid: 48f99ae8a23074c4491bc5aefe834e03, type: 3}
+  m_Volume: 0
+  m_Enabled: 1
+--- !u!1233149941 &-6110985648993498090
+AudioContainerElement:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CardSound7_{-6110985648993498090}
+  m_AudioClip: {fileID: 8300000, guid: 588d387d8388fae4b863aba805dc2111, type: 3}
+  m_Volume: 0
+  m_Enabled: 1
+--- !u!1233149941 &-5187210487839804535
+AudioContainerElement:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CardSound3_{-5187210487839804535}
+  m_AudioClip: {fileID: 8300000, guid: ec21c9f208192684883707586e2659d9, type: 3}
+  m_Volume: 0
+  m_Enabled: 1
+--- !u!1233149941 &-556995059075141574
+AudioContainerElement:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CardSound6_{-556995059075141574}
+  m_AudioClip: {fileID: 8300000, guid: 4341efc6f2bbdf34f98e1dd7a03888ac, type: 3}
+  m_Volume: 0
+  m_Enabled: 1
+--- !u!1233149941 &2351535717189614131
+AudioContainerElement:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CardSound_{2351535717189614131}
+  m_AudioClip: {fileID: 8300000, guid: 3f81fb56052b9014aaf23e1236bc610c, type: 3}
+  m_Volume: 0
+  m_Enabled: 1
+--- !u!1233149941 &4358375971736821082
+AudioContainerElement:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CardSound2_{4358375971736821082}
+  m_AudioClip: {fileID: 8300000, guid: 3316e4756e835844897d9c88ceed6357, type: 3}
+  m_Volume: 0
+  m_Enabled: 1
+--- !u!1307931743 &6418180475301049370
+AudioRandomContainer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CardPlaceSound
+  m_Volume: 0
+  m_Pitch: 0
+  m_AutomaticTriggerTime: 0
+  m_LoopCount: 1
+  m_VolumeRandomizationRange: {x: -10, y: 10}
+  m_PitchRandomizationRange: {x: -500, y: 500}
+  m_AutomaticTriggerTimeRandomizationRange: {x: 0, y: 0}
+  m_LoopCountRandomizationRange: {x: 0, y: 0}
+  m_Elements:
+  - {fileID: 2351535717189614131}
+  - {fileID: 4358375971736821082}
+  - {fileID: -5187210487839804535}
+  - {fileID: -6564301754986303989}
+  - {fileID: 7104013646780331677}
+  - {fileID: -556995059075141574}
+  - {fileID: -6110985648993498090}
+  - {fileID: -8746612070511928342}
+  m_AvoidRepeatingLast: 1
+  m_PlaybackMode: 2
+  m_TriggerMode: 0
+  m_AutomaticTriggerMode: 1
+  m_LoopMode: 1
+  m_VolumeRandomizationEnabled: 1
+  m_PitchRandomizationEnabled: 1
+  m_AutomaticTriggerTimeRandomizationEnabled: 0
+  m_LoopCountRandomizationEnabled: 1
+--- !u!1233149941 &7104013646780331677
+AudioContainerElement:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CardSound5_{7104013646780331677}
+  m_AudioClip: {fileID: 8300000, guid: ac6da22f3f2e67649b584ff2116d2810, type: 3}
+  m_Volume: 0
+  m_Enabled: 1

@@ -1,7 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System;
 
 public class GameController : MonoBehaviour
 {
@@ -20,6 +18,9 @@ public class GameController : MonoBehaviour
     [SerializeField] RoundOverView roundOverView;
     [SerializeField] DeckView deckView;
 
+    [Header("Controllers")]
+    [SerializeField] SFXController sfxController;
+
     private void Start()
     {
         if (localPlayerID == -1)
@@ -30,6 +31,10 @@ public class GameController : MonoBehaviour
         System.Random rand = new System.Random();
         int seed = rand.Next(int.MinValue, int.MaxValue);
         model = new GameModel(seed);
+
+        sfxController.Init(model);
+
+        model.OnGameStarted += HandleGameStarted;
 
         model.OnHandChanged += HandleHandChanged;
         model.OnKozChanged += HandleKozChanged;
@@ -43,7 +48,12 @@ public class GameController : MonoBehaviour
         model.OnStateChanged += HandleDisableDeckView;
         model.OnMatchOver += HandleMatchOver;
 
-        model.ForceFullUpdate();
+        model.StartGame();
+    }
+
+    private void HandleGameStarted()
+    {
+
     }
 
     private void HandleDeckClosed(int playerID)

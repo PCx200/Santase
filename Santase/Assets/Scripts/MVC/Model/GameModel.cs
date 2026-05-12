@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameModel
 {
+    // Initialization events
+    public event Action OnGameStarted;
 
+    // Gameplay events
     public event Action<int, List<Card>> OnHandChanged;
     public event Action<Card> OnKozChanged;
     public event Action<int, int> OnScoreChanged;
@@ -48,6 +49,14 @@ public class GameModel
         this.seed = seed;
         deck = new Deck(seed);
 
+        gameState = GameState.Preparation;
+    }
+
+    public void StartGame()
+    {
+        OnGameStarted?.Invoke();
+        OnScoreChanged?.Invoke(player1.GetRoundPoints(), player2.GetRoundPoints());
+
         InitDeck();
         DetermineKoz();
         DealInitialHands();
@@ -72,10 +81,13 @@ public class GameModel
 
     private void DealInitialHands()
     {
-        for (int i = 0; i < 3; i++) player1.TakeCardFromDeck(deck);
-        for (int i = 0; i < 3; i++) player2.TakeCardFromDeck(deck);
-        for (int i = 0; i < 3; i++) player1.TakeCardFromDeck(deck);
-        for (int i = 0; i < 3; i++) player2.TakeCardFromDeck(deck);
+        for (int i = 0; i < 3; i++) player1.TakeCardFromDeck(deck); OnHandChanged?.Invoke(0, player1.GetHand());
+        
+        for (int i = 0; i < 3; i++) player2.TakeCardFromDeck(deck); OnHandChanged?.Invoke(1, player2.GetHand());
+
+        for (int i = 0; i < 3; i++) player1.TakeCardFromDeck(deck); OnHandChanged?.Invoke(0, player1.GetHand());
+
+        for (int i = 0; i < 3; i++) player2.TakeCardFromDeck(deck); OnHandChanged?.Invoke(1, player2.GetHand());
     }
 
     private void DetermineKoz()
@@ -122,6 +134,7 @@ public class GameModel
             stack.Push(topToBottom[i]);
 
         Debug.Log($"Koz at bottom of deck: {kozCard.GetName()} {kozCard.GetSuit()}");
+        OnKozChanged?.Invoke(kozCard);
     }
     #endregion
 
@@ -443,14 +456,5 @@ public class GameModel
     {
         return activePlayer;
     }
-    public void ForceFullUpdate()
-    {
-        OnHandChanged?.Invoke(0, player1.GetHand());
-        OnHandChanged?.Invoke(1, player2.GetHand());
-        OnKozChanged?.Invoke(kozCard);
-        OnScoreChanged?.Invoke(player1.GetRoundPoints(), player2.GetRoundPoints());
-        OnTurnChanged?.Invoke(activePlayer);
-    }
-
     #endregion
 }
