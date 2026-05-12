@@ -1,0 +1,61 @@
+# -------------------------
+# Build artifacts
+# -------------------------
+bin/
+obj/
+out/
+publish/
+TestResults/
+
+# -------------------------
+# Visual Studio / VS Code
+# -------------------------
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# -------------------------
+# NuGet
+# -------------------------
+*.nupkg
+*.snupkg
+packages/
+*.nuget.props
+*.nuget.targets
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+
+# -------------------------
+# Cache / temp
+# -------------------------
+*.cache
+*.tmp
+*.temp
+*.db
+*.db-shm
+*.db-wal
+
+# -------------------------
+# OS files
+# -------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# -------------------------
+# Rider / JetBrains
+# -------------------------
+.idea/
+*.DotSettings
+
+# -------------------------
+# Resharper
+# -------------------------
+_ReSharper*/
+*.[Rr]e[Ss]harper

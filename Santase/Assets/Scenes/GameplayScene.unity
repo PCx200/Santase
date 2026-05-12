@@ -847,63 +847,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 353449201}
   m_CullTransparentMesh: 1
---- !u!1001 &375236344
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 5747137093481192532, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_Name
-      value: CardPlayedAudio (1)
-      objectReference: {fileID: 0}
-    - target: {fileID: 6251434669752214812, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 519.1804
-      objectReference: {fileID: 0}
-    - target: {fileID: 6251434669752214812, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6251434669752214812, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 4733.8906
-      objectReference: {fileID: 0}
-    - target: {fileID: 6251434669752214812, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6251434669752214812, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6251434669752214812, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6251434669752214812, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6251434669752214812, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6251434669752214812, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6251434669752214812, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -2646,7 +2589,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 274cad1eb5fe98b4a902a722918eda47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SFXController
-  shuffleDeckAudio: {fileID: 1591299142}
+  shuffleDeckAudio: {fileID: 1294817138}
   cardPlayAudio: {fileID: 1294817138}
 --- !u!4 &1563175096
 Transform:
@@ -2663,11 +2606,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!82 &1591299142 stripped
-AudioSource:
-  m_CorrespondingSourceObject: {fileID: 3157237513130222488, guid: 889d7c35a0c92fb4384773755a5697af, type: 3}
-  m_PrefabInstance: {fileID: 375236344}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1623090776
 GameObject:
   m_ObjectHideFlags: 0
@@ -3207,4 +3145,3 @@ SceneRoots:
   - {fileID: 1668708286}
   - {fileID: 1563175096}
   - {fileID: 1244545062}
-  - {fileID: 375236344}

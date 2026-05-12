@@ -101,15 +101,15 @@ public class GameModel
         }
         //THE KOZ IS ALWAYS THE 13th ELEMENT!
         kozCard = temp_cards[12];
-        Debug.Log($"KOZ IS: {temp_cards[12].GetName()} {temp_cards[12].GetSuit()}");
-        Debug.Log(deck.GetCards().Count);
+        //Debug.Log($"KOZ IS: {temp_cards[12].GetName()} {temp_cards[12].GetSuit()}");
+        //Debug.Log(deck.GetCards().Count);
 
         foreach (Card card in deck.GetCards())
         {
             if (card.GetSuit() == temp_cards[12].GetSuit())
             {
                 card.SetKoz(true);
-                Debug.Log($"{card.GetName()} {card.GetSuit()} IS KOZ");
+                //Debug.Log($"{card.GetName()} {card.GetSuit()} IS KOZ");
             }
         }
     }
@@ -133,7 +133,7 @@ public class GameModel
         for (int i = topToBottom.Count - 1; i >= 0; i--)
             stack.Push(topToBottom[i]);
 
-        Debug.Log($"Koz at bottom of deck: {kozCard.GetName()} {kozCard.GetSuit()}");
+        //Debug.Log($"Koz at bottom of deck: {kozCard.GetName()} {kozCard.GetSuit()}");
         OnKozChanged?.Invoke(kozCard);
     }
     #endregion
