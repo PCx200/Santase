@@ -11,8 +11,7 @@ namespace networkingLayer
     {
         private TcpListener listener;
         private List<TcpNetworkConnection> connections = new();
-
-        OSCDispatcher dispatcher;
+        private List<Room> rooms = new();
 
         public void Start(int port)
         {
@@ -20,6 +19,7 @@ namespace networkingLayer
             listener = new TcpListener(IPAddress.Any, port);
             listener.Start();
 
+            CreateRoom();
         }
 
         public void Update()
@@ -27,7 +27,7 @@ namespace networkingLayer
             while (true)
             {
                 AcceptNewConnections();
-                UpdateConnections();
+                UpdateRooms();
 
                 System.Threading.Thread.Sleep(10);
             }
@@ -35,31 +35,53 @@ namespace networkingLayer
 
         private void AcceptNewConnections()
         {
-            while (!listener.Pending())
+            while (listener.Pending())
             {
                 TcpClient client = listener.AcceptTcpClient();
                 TcpNetworkConnection connection = new TcpNetworkConnection(client);
                 connections.Add(connection);
                 Console.WriteLine($"New Connection from {connection.Remote}");
-            }
-        }
 
-        private void UpdateConnections()
-        {
-            for (int i = 0; i < connections.Count; i++)
-            {
-                while (connections[i].Available() > 0)
+                Room currentRoom = rooms[rooms.Count - 1];
+
+                if (currentRoom.TryAddPlayer(connection, out int playerID))
                 {
-                    HandlePacket(connections[i].GetPacket(), connections[i].Remote);
+                    Console.WriteLine($"Player {playerID} joined Room {currentRoom.ID}");
+                    if (currentRoom.IsFull)
+                    {
+                        Console.WriteLine($"Room {currentRoom.ID} is full. Starting game...");
+                        currentRoom.Model.StartGame();
+
+                        CreateRoom();
+
+                        Console.WriteLine($"Created new Room {rooms.Count - 1}");
+                    }
                 }
             }
         }
-        private void HandlePacket(byte[] packet, IPEndPoint remote)
-        {
-            OSCMessageIn msg = new OSCMessageIn(packet);
-            Console.WriteLine($"Message arrives on server: {msg}");
 
-            dispatcher.HandlePacket(packet, remote);
+        private void UpdateRooms()
+        {
+            for (int i = 0; i < rooms.Count; i++)
+            {
+                try
+                {
+                    rooms[i].Update();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ROOM {rooms[i].ID} ERROR] {ex}");
+                }
+            }
+        }
+
+        private void CreateRoom()
+        {
+            int seed = new Random().Next(int.MinValue, int.MaxValue);
+            Room room = new Room(rooms.Count, seed);
+            rooms.Add(room);
+
+            Console.WriteLine($"Created new Room {room.ID}");
         }
     }
 }
