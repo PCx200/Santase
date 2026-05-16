@@ -17,7 +17,7 @@ public class PlayedCardView : MonoBehaviour
             cp.card_SO.Suit == card.GetSuit()
         );
 
-        Image target = playerID == 0 ? player1Spot : player2Spot;
+        Image target = GetSpot(playerID);
 
         target.sprite = prefab.card_SO.sprite;
         var c = target.color;
@@ -36,5 +36,12 @@ public class PlayedCardView : MonoBehaviour
 
         player1Spot.color = c;
         player2Spot.color = c;
+    }
+
+    private Image GetSpot(int playerID)
+    {
+        if (FindFirstObjectByType<GameController>().localPlayerID == 0) return playerID == 0 ? player1Spot : player2Spot;
+
+        else return playerID == 1 ? player1Spot : player2Spot;
     }
 }

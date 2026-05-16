@@ -1,8 +1,9 @@
+using NetworkConnections;
+using OSCTools;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using NetworkConnections;
-using OSCTools;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace networkingLayer
@@ -102,12 +103,34 @@ namespace networkingLayer
 
         private void SubscribeModelEvents()
         {
+            // server sends full card data
             Model.OnHandChanged += (playerID, hand) =>
             {
-                var msg = new OSCMessageOut("/HandChanged")
+                var ownerMsg = new OSCMessageOut("/HandChanged")
                     .AddInt(playerID)
                     .AddInt(hand.Count);
-                Broadcast(msg.GetBytes());
+
+                foreach (var card in hand)
+                {
+                    ownerMsg.AddString(card.GetName());
+                    ownerMsg.AddString(card.GetSuit());
+                    ownerMsg.AddInt(card.GetPoints());
+                }
+
+                var opponentMsg = new OSCMessageOut("/HandChanged")
+                    .AddInt(playerID)
+                    .AddInt(hand.Count);
+
+                if (playerID == 0)
+                {
+                    Player1?.Send(ownerMsg.GetBytes());
+                    Player2?.Send(opponentMsg.GetBytes());
+                }
+                else
+                {
+                    Player2?.Send(ownerMsg.GetBytes());
+                    Player1?.Send(opponentMsg.GetBytes());
+                }
             };
 
             Model.OnKozChanged += (koz) =>
@@ -155,6 +178,8 @@ namespace networkingLayer
                     .AddInt(gamePoints.Item1)
                     .AddInt(gamePoints.Item2);
                 Broadcast(msg.GetBytes());
+
+                Task.Delay(2000).ContinueWith(_ => Model.RestartRound());
             };
 
             Model.OnDeckClosed += (playerID) =>

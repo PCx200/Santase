@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 public class GameModel
 {
@@ -61,6 +60,9 @@ public class GameModel
         DetermineKoz();
         DealInitialHands();
         PutKozAsLastCard();
+
+        OnHandChanged?.Invoke(0, player1.GetHand());
+        OnHandChanged?.Invoke(1, player2.GetHand());
 
         gameState = GameState.Phase1;
 
@@ -123,7 +125,7 @@ public class GameModel
 
         if (!topToBottom.Remove(kozCard))
         {
-            Debug.LogError("PutKozAsLastCard: kozCard not found in deck order.");
+            System.Console.WriteLine("PutKozAsLastCard: kozCard not found in deck order.");
             for (int i = topToBottom.Count - 1; i >= 0; i--)
                 stack.Push(topToBottom[i]);
             return;
@@ -280,37 +282,31 @@ public class GameModel
         if (c1.GetPoints() > c2.GetPoints() && c1.GetSuit() == c2.GetSuit())
         {
             winner = player1; loser = player2;
-            Debug.Log("Case 1");
         }
 
         else if (trickLeader == player1.ID && c1.GetSuit() != c2.GetSuit() && !c2.GetKoz())
         {
             winner = player1; loser = player2;
-            Debug.Log("Case 2");
         }
 
         else if (trickLeader == player1.ID && c1.GetSuit() != c2.GetSuit() && c2.GetKoz())
         {
             winner = player2; loser = player1;
-            Debug.Log("Case 3");
         }
 
         else if (c1.GetPoints() < c2.GetPoints() && c1.GetSuit() == c2.GetSuit())
         {
             winner = player2; loser = player1;
-            Debug.Log("Case 4");
         }
 
         else if (trickLeader == player2.ID && c1.GetSuit() != c2.GetSuit() && !c1.GetKoz())
         {
             winner = player2; loser = player1;
-            Debug.Log("Case 5");
         }
 
         else if (trickLeader == player2.ID && c1.GetSuit() != c2.GetSuit() && c1.GetKoz())
         {
             winner = player1; loser = player2;
-            Debug.Log("Case 6");
         }
 
 

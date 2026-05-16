@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 public class Player
 {
@@ -33,7 +32,7 @@ public class Player
 
     public Card PlayCard(int index)
     {
-        Debug.Log($"Player {ID} played card {hand[index].GetName()} of {hand[index].GetSuit()}");
+        System.Console.WriteLine($"Player {ID} played card {hand[index].GetName()} of {hand[index].GetSuit()}");
         Card removed = hand[index];
         CheckFor20or40(removed);
 
@@ -87,12 +86,12 @@ public class Player
         {
             cards += $"[{i+1}]" + "("+ hand[i].GetName().ToString() + " " + hand[i].GetSuit().ToString() + ") ";
         }
-        Debug.Log($"Player{ID} {cards}");
+        System.Console.WriteLine($"Player{ID} {cards}");
     }
 
     public void PrintPoints()
     {
-        Debug.Log($"Player{ID} points: {GetRoundPoints()}");
+        System.Console.WriteLine($"Player{ID} points: {GetRoundPoints()}");
     }
 
     //KOZ == TRUMP CARD (in english)
@@ -115,12 +114,12 @@ public class Player
             Card exchanged = deck.GetCards().ToArray()[deck.GetCards().Count - 1];
             deck.GetCards().ToArray()[deck.GetCards().Count - 1] = card_9;
 
-            Debug.Log($"Player{ID} exchanged {card_9.GetName()} of {card_9.GetSuit()} and got {exchanged.GetName()} of {exchanged.GetSuit()}");
+            System.Console.WriteLine($"Player{ID} exchanged {card_9.GetName()} of {card_9.GetSuit()} and got {exchanged.GetName()} of {exchanged.GetSuit()}");
             return card_9;  
         }
         else
         {
-            Debug.Log("Can't exchange!");
+            System.Console.WriteLine("Can't exchange!");
             return null;
         }
     }

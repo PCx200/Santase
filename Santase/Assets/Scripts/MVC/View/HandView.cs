@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-
 public class HandView : MonoBehaviour
 {
     [SerializeField] Transform player1HandRoot;
@@ -8,16 +7,15 @@ public class HandView : MonoBehaviour
     [SerializeField] List<CardPresenter> cardPresenters;
     [SerializeField] private CardPresenter cardBack;
 
-    public int localPlayerID;
-
     public void UpdateHand(int playerID, List<Card> hand)
     {
-        Transform root = playerID == 0 ? player1HandRoot : player2HandRoot;
+        Transform root = GetRootForPlayer(playerID);
+
 
         foreach (Transform child in root)
             Destroy(child.gameObject);
 
-        bool isLocal = (playerID == localPlayerID);
+        bool isLocal = (playerID == FindFirstObjectByType<GameController>().localPlayerID);
 
         for (int i = 0; i < hand.Count; i++)
         {
@@ -46,5 +44,11 @@ public class HandView : MonoBehaviour
                 click.playerID = playerID;
             }
         }
+    }
+    private Transform GetRootForPlayer(int playerID)
+    {
+        if (FindFirstObjectByType<GameController>().localPlayerID == 0)  return playerID == 0 ? player1HandRoot : player2HandRoot;
+
+        else return playerID == 1 ? player1HandRoot : player2HandRoot;
     }
 }

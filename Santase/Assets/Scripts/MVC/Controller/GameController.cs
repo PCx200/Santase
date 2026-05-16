@@ -1,9 +1,10 @@
 using UnityEngine;
 using System.Collections.Generic;
+using OSCTools;
 
 public class GameController : MonoBehaviour
 {
-    GameModel model;
+    //Removed the Model -> The server will have the controll over it 
 
     [Header("Multiplayer")]
     public int localPlayerID = -1;
@@ -23,132 +24,93 @@ public class GameController : MonoBehaviour
 
     private void Start()
     {
-        if (localPlayerID == -1)
-            localPlayerID = 0;
 
-        handView.localPlayerID = localPlayerID;
-
-        System.Random rand = new System.Random();
-        int seed = rand.Next(int.MinValue, int.MaxValue);
-        model = new GameModel(seed);
-
-        sfxController.Init(model);
-
-        model.OnGameStarted += HandleGameStarted;
-
-        model.OnHandChanged += HandleHandChanged;
-        model.OnKozChanged += HandleKozChanged;
-        model.OnScoreChanged += HandleScoreChanged;
-        model.OnTurnChanged += HandleTurnChanged;
-        model.OnCardPlayed += HandleCardPlayed;
-        model.OnTrickEnded += HandleTrickEnded;
-        model.OnRoundOver += HandleRoundOver;
-        model.OnDeckClosed += HandleDeckClosed;
-        model.OnNotification += HandleNotification;
-        model.OnStateChanged += HandleDisableDeckView;
-        model.OnMatchOver += HandleMatchOver;
-
-        model.StartGame();
     }
 
-    private void HandleGameStarted()
+    public void PlayCard(int playerID, int cardIndex)
     {
+        if (playerID != localPlayerID)
+            return;
 
+        Client.Instance.SendPlayCard(cardIndex);
     }
 
-    private void HandleDeckClosed(int playerID)
+    public void CloseDeck()
+    {
+        Client.Instance.SendCloseDeck();
+    }
+
+    public void ExchangeKoz()
+    {
+        Client.Instance.SendExchangeKoz();
+    }
+
+    public void HandleHandChangedFromServer(int playerID, List<Card> hand)
+    {
+        handView.UpdateHand(playerID, hand);
+    }
+
+
+    public void HandleKozChangedFromServer(string name, string suit)
+    {
+        Card koz = new Card(name, suit, 0);
+        kozView.UpdateKoz(koz);
+    }
+
+    public void HandleScoreChangedFromServer(int p1, int p2)
+    {
+        scoreView.UpdateRoundScore(p1, p2);
+    }
+
+    public void HandleTurnChangedFromServer(int playerID)
+    {
+        turnView.UpdateTurn(playerID);
+    }
+
+    public void HandleCardPlayedFromServer(int playerID, string name, string suit, int points)
+    {
+        Card card = new Card(name, suit, points);
+        playedCardView.ShowCard(playerID, card);
+        sfxController?.HandleCardPlayed(playerID, card);
+    }
+
+    public void HandleTrickEndedFromServer()
+    {
+        StartCoroutine(playedCardView.ResetAfterTrick());
+    }
+
+    public void HandleDeckClosedFromServer(int playerID)
     {
         deckView.EnableDeckView(false);
         deckView.CloseDeck(true);
     }
 
-    public void CloseDeck()
-    {
-        int playerID = model.GetActivePlayer();
-        model.RequestCloseDeck(playerID);
-    }
-
-    public void PlayCard(int playerID, int cardIndex)
-    {
-        if (playerID != model.GetActivePlayer())
-            return;
-        model.RequestPlayCard(playerID, cardIndex);
-    }
-
-    public void ExchangeKoz()
-    {
-        int playerID = model.GetActivePlayer();
-        model.RequestExchangeKoz(playerID);
-    }
-
-    private void RestartRound()
-    {
-        model.RestartRound();
-    }
-
-    private void RestartMatch()
-    {
-        model.RestartMatch();
-    }
-
-
-    private void HandleHandChanged(int playerID, List<Card> hand)
-    {
-        handView.UpdateHand(playerID, hand);
-    }
-
-    private void HandleKozChanged(Card koz)
-    {
-        kozView.UpdateKoz(koz);
-    }
-
-    private void HandleDisableDeckView()
+    public void HandleStateChangedFromServer()
     {
         deckView.EnableDeckView(false);
     }
 
-    private void HandleScoreChanged(int p1, int p2)
-    {
-        scoreView.UpdateRoundScore(p1, p2);
-    }
-
-    private void HandleTurnChanged(int playerID)
-    {
-        turnView.UpdateTurn(playerID);
-    }
-
-    private void HandleTrickEnded()
-    {
-       StartCoroutine(playedCardView.ResetAfterTrick());
-    }
-
-    private void HandleCardPlayed(int playerID, Card card)
-    {
-        playedCardView.ShowCard(playerID, card);
-    }
-
-    private void HandleRoundOver(int winnerID, (int,int) gamePoints)
+    public void HandleRoundOverFromServer(int winnerID, int gp1, int gp2)
     {
         roundOverView.ShowWinner(winnerID);
-        scoreView.UpdateGameScore(gamePoints.Item1, gamePoints.Item2);
+        scoreView.UpdateGameScore(gp1, gp2);
 
-        Invoke(nameof(RestartRound), 2f);
-        Invoke(nameof(DisableRoundOverPanel), 2f);
+        Invoke(nameof(HideRoundOverPanel), 2f);
         Invoke(nameof(EnableDeckView), 2f);
         Invoke(nameof(DisableClosedDeck), 2f);
     }
 
-    private void HandleMatchOver(int winnerID)
+    public void HandleMatchOverFromServer(int winnerID)
     {
-        Invoke(nameof(RestartMatch), 2f);
+        // You can show a match over screen here if you want
     }
 
-    private void HandleNotification(string msg)
+    public void HandleNotificationFromServer(string msg)
     {
         notificationView.ShowMessage(msg);
     }
 
-    private void DisableRoundOverPanel()
+    private void HideRoundOverPanel()
     {
         roundOverView.DisablePanel();
     }

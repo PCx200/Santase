@@ -17,7 +17,7 @@ public class SFXController : MonoBehaviour
         shuffleDeckAudio.Play();
     }
 
-    private void HandleCardPlayed(int playerID, Card card)
+    public void HandleCardPlayed(int playerID, Card card)
     {
         cardPlayAudio.Play();
     }

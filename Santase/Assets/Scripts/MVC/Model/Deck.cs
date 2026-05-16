@@ -168,7 +168,7 @@ public class Deck
         for (int i = 0; i < temp_deck.Count; i++)
         {
             Card card = temp_deck.Pop();
-            Debug.Log($"{card.GetName()} {card.GetSuit()} {card.GetPoints()}");
+            System.Console.WriteLine($"{card.GetName()} {card.GetSuit()} {card.GetPoints()}");
         }
     }
 
