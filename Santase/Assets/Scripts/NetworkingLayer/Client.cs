@@ -1,11 +1,8 @@
 using NetworkConnections;
 using OSCTools;
-using System;
 using System.Collections.Generic;
 using System.Net;
-using UnityEditor.Search;
 using UnityEngine;
-using static UnityEngine.CullingGroup;
 
 public class Client : MonoBehaviour
 {
@@ -141,9 +138,21 @@ public class Client : MonoBehaviour
     {
         int roomID = msg.ReadInt();
         playerID = msg.ReadInt();
-        gameController.localPlayerID = playerID;
 
         Debug.Log($"Joined room {roomID} as Player {playerID}");
+
+        UnityEngine.SceneManagement.SceneManager.LoadScene("GameplayScene");
+
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnGameplaySceneLoaded;
+    }
+    private void OnGameplaySceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+    {
+        if (scene.name != "GameplayScene") return;
+
+        gameController = FindFirstObjectByType<GameController>();
+        gameController.localPlayerID = playerID;
+
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnGameplaySceneLoaded;
     }
 
     private void OnRoomJoinFailed(OSCMessageIn msg, IPEndPoint remote)

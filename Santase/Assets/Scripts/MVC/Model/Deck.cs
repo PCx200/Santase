@@ -1,11 +1,11 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
 public class Deck
 {
     // Unity: StreamingAssets. Otherwise: still only use a relative path! (Or AppData)
-    string card_data_path = "C:\\Users\\ACER\\Documents\\Santase\\Santase\\Assets\\Scripts\\DataLayer\\Cards.txt";
+    string card_data_path; // = "C:\\Users\\ACER\\Documents\\Santase\\Santase\\Assets\\Scripts\\DataLayer\\Cards.txt";
     Stack<Card> cards = new Stack<Card>();
     public const int size = 24;
 
@@ -14,6 +14,9 @@ public class Deck
     public Deck(int seed)
     {
         rand = new System.Random(seed);
+
+        card_data_path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Cards.txt");
+
         FillDeckFromFile();
     }
 
