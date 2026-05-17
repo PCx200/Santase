@@ -39,6 +39,7 @@ namespace networkingLayer
                 Player1 = player;
                 playerID = 0;
                 SendPlayerInfo(player, playerID);
+                SendRoomInfo(player);
                 return true;
             }
             if (Player2 == null)
@@ -46,6 +47,7 @@ namespace networkingLayer
                 Player2 = player;
                 playerID = 1;
                 SendPlayerInfo(player, playerID);
+                SendRoomInfo(player);
                 return true;
             }
 
@@ -90,11 +92,20 @@ namespace networkingLayer
         {
             dispatcher.HandlePacket(packet, remote);
         }
+
         private void SendPlayerInfo(TcpNetworkConnection player, int playerID)
         {
             var msg = new OSCMessageOut("/PlayerInfo").AddInt(playerID);
             player.Send(msg.GetBytes());
         }
+
+        private void SendRoomInfo(TcpNetworkConnection player)
+        {
+            var msg = new OSCMessageOut("/RoomInfo")
+                .AddInt(ID);
+            player.Send(msg.GetBytes());
+        }
+
         private void Broadcast(byte[] packet)
         {
             if (Player1 != null) Player1.Send(packet);
@@ -233,6 +244,13 @@ namespace networkingLayer
                 int playerID = msg.ReadInt();
                 Model.RequestExchangeKoz(playerID);
             }, OSCUtil.INT);
+
+            // /HelloClient string version
+            dispatcher.AddListener("/HelloClient", (msg, remote) =>
+            {
+                string version = msg.ReadString();
+                Console.WriteLine($"Client {remote} connected with version {version}");
+            }, OSCUtil.STRING);
         }
     }
 }

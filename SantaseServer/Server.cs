@@ -7,19 +7,32 @@ using System.Net.Sockets;
 
 namespace networkingLayer
 {
+    struct RoomInfo
+    {
+        public string Name;
+        public string Password;
+        public Room Room;
+    }
+
     public class Server
     {
         private TcpListener listener;
         private List<TcpNetworkConnection> connections = new();
-        private List<Room> rooms = new();
+
+        // roomName -> RoomInfo
+        private Dictionary<string, RoomInfo> rooms = new();
+
+        // connections that are NOT in a room yet
+        private HashSet<TcpNetworkConnection> lobby = new();
+
+        // dispatcher for each lobby connection
+        private Dictionary<TcpNetworkConnection, OSCDispatcher> lobbyDispatchers = new();
 
         public void Start(int port)
         {
             Console.WriteLine($"Starting Santase server on port {port}...");
             listener = new TcpListener(IPAddress.Any, port);
             listener.Start();
-
-            CreateRoom();
         }
 
         public void Update()
@@ -27,6 +40,7 @@ namespace networkingLayer
             while (true)
             {
                 AcceptNewConnections();
+                UpdateLobby();
                 UpdateRooms();
 
                 System.Threading.Thread.Sleep(10);
@@ -38,23 +52,112 @@ namespace networkingLayer
             while (listener.Pending())
             {
                 TcpClient client = listener.AcceptTcpClient();
-                TcpNetworkConnection connection = new TcpNetworkConnection(client);
-                connections.Add(connection);
-                Console.WriteLine($"New Connection from {connection.Remote}");
+                TcpNetworkConnection conn = new TcpNetworkConnection(client);
 
-                Room currentRoom = rooms[rooms.Count - 1];
+                connections.Add(conn);
+                lobby.Add(conn);
 
-                if (currentRoom.TryAddPlayer(connection, out int playerID))
+                Console.WriteLine($"New Connection from {conn.Remote}");
+
+                // Create dispatcher for this connection
+                var dispatcher = new OSCDispatcher();
+                dispatcher.ShowIncomingMessages = false;
+
+                // CREATE ROOM
+                dispatcher.AddListener("/CreateRoom", (msg, remote) =>
                 {
-                    Console.WriteLine($"Player {playerID} joined Room {currentRoom.ID}");
-                    if (currentRoom.IsFull)
+                    string name = msg.ReadString();
+                    string pass = msg.ReadString();
+
+                    if (rooms.ContainsKey(name))
                     {
-                        Console.WriteLine($"Room {currentRoom.ID} is full. Starting game...");
-                        currentRoom.Model.StartGame();
+                        conn.Send(new OSCMessageOut("/RoomCreatedFailed")
+                            .AddString("Room already exists")
+                            .GetBytes());
+                        return;
+                    }
 
-                        CreateRoom();
+                    int seed = new Random().Next();
+                    Room room = new Room(rooms.Count, seed);
 
-                        Console.WriteLine($"Created new Room {rooms.Count - 1}");
+                    rooms[name] = new RoomInfo
+                    {
+                        Name = name,
+                        Password = pass,
+                        Room = room
+                    };
+
+                    conn.Send(new OSCMessageOut("/RoomCreated")
+                        .AddInt(room.ID)
+                        .GetBytes());
+
+                    Console.WriteLine($"Room '{name}' created.");
+                }, OSCUtil.STRING, OSCUtil.STRING);
+
+                // JOIN ROOM
+                dispatcher.AddListener("/JoinRoom", (msg, remote) =>
+                {
+                    string name = msg.ReadString();
+                    string pass = msg.ReadString();
+
+                    if (!rooms.ContainsKey(name))
+                    {
+                        conn.Send(new OSCMessageOut("/RoomJoinFailed")
+                            .AddString("Room not found")
+                            .GetBytes());
+                        return;
+                    }
+
+                    var info = rooms[name];
+
+                    if (info.Password != pass)
+                    {
+                        conn.Send(new OSCMessageOut("/RoomJoinFailed")
+                            .AddString("Wrong password")
+                            .GetBytes());
+                        return;
+                    }
+
+                    if (!info.Room.TryAddPlayer(conn, out int playerID))
+                    {
+                        conn.Send(new OSCMessageOut("/RoomJoinFailed")
+                            .AddString("Room full")
+                            .GetBytes());
+                        return;
+                    }
+
+                    conn.Send(new OSCMessageOut("/RoomJoinSuccess")
+                        .AddInt(info.Room.ID)
+                        .AddInt(playerID)
+                        .GetBytes());
+
+                    Console.WriteLine($"Player {playerID} joined room '{name}'");
+
+                    // Remove from lobby
+                    lobby.Remove(conn);
+                    lobbyDispatchers.Remove(conn);
+
+                    if (info.Room.IsFull)
+                    {
+                        Console.WriteLine($"Room '{name}' is full. Starting game...");
+                        info.Room.Model.StartGame();
+                    }
+                }, OSCUtil.STRING, OSCUtil.STRING);
+
+                lobbyDispatchers[conn] = dispatcher;
+            }
+        }
+
+        private void UpdateLobby()
+        {
+            foreach (var conn in new List<TcpNetworkConnection>(lobby))
+            {
+                while (conn.Available() > 0)
+                {
+                    var packet = conn.GetPacket();
+                    if (packet != null)
+                    {
+                        lobbyDispatchers[conn].HandlePacket(packet, conn.Remote);
                     }
                 }
             }
@@ -62,26 +165,10 @@ namespace networkingLayer
 
         private void UpdateRooms()
         {
-            for (int i = 0; i < rooms.Count; i++)
+            foreach (var kvp in rooms)
             {
-                try
-                {
-                    rooms[i].Update();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[ROOM {rooms[i].ID} ERROR] {ex}");
-                }
+                kvp.Value.Room.Update();
             }
-        }
-
-        private void CreateRoom()
-        {
-            int seed = new Random().Next(int.MinValue, int.MaxValue);
-            Room room = new Room(rooms.Count, seed);
-            rooms.Add(room);
-
-            Console.WriteLine($"Created new Room {room.ID}");
         }
     }
 }

@@ -35,8 +35,7 @@ public class Client : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        Connect();
-        Init();
+        ConnectToServer(serverIP);
     }
 
     // Update is called once per frame
@@ -65,17 +64,35 @@ public class Client : MonoBehaviour
         dispatcher.HandlePacket(packet, connection.Remote);
     }
 
+    public void ConnectToServer(string ip)
+    {
+        serverIP = ip;
+        Connect();
+        Init();
+    }
+
     private void Connect()
     {
         connection = new TcpNetworkConnection(serverIP, serverPort);
         Debug.Log("Connected to server");
+
+        // Send hello handshake
+        var hello = new OSCMessageOut("/HelloClient")
+            .AddString("v1.0");
+        connection.Send(hello.GetBytes());
     }
     private void Init()
     {
         dispatcher = new OSCDispatcher();
         dispatcher.ShowIncomingMessages = true;
 
-        dispatcher.AddListener("/PlayerInfo", OnPlayerInfo, OSCUtil.INT);
+        // Lobby Listeners
+        dispatcher.AddListener("/RoomCreated", OnRoomCreated, OSCUtil.INT);
+        dispatcher.AddListener("/RoomCreatedFailed", OnRoomCreatedFailed, OSCUtil.STRING);
+        dispatcher.AddListener("/RoomJoinSuccess", OnRoomJoinSuccess, OSCUtil.INT, OSCUtil.INT);
+        dispatcher.AddListener("/RoomJoinFailed", OnRoomJoinFailed, OSCUtil.STRING);
+
+        // Gameplay Listeners
         dispatcher.AddListener("/HandChanged", OnHandChanged);
         dispatcher.AddListener("/KozChanged", OnKozChanged, OSCUtil.STRING, OSCUtil.STRING);
         dispatcher.AddListener("/ScoreChanged", OnScoreChanged, OSCUtil.INT, OSCUtil.INT);
@@ -89,13 +106,55 @@ public class Client : MonoBehaviour
         dispatcher.AddListener("/StateChanged", OnStateChanged);
     }
 
-    private void OnPlayerInfo(OSCMessageIn msg, IPEndPoint remote)
+    #region Lobby Phase
+    public void CreateRoom(string roomName, string password)
     {
-        playerID = msg.ReadInt();
-        gameController.localPlayerID = playerID;
-        Debug.Log($"Assigned PlayerID: {playerID}");
+        var msg = new OSCMessageOut("/CreateRoom")
+            .AddString(roomName)
+            .AddString(password);
+
+        connection.Send(msg.GetBytes());
     }
 
+    public void JoinRoom(string roomName, string password)
+    {
+        var msg = new OSCMessageOut("/JoinRoom")
+            .AddString(roomName)
+            .AddString(password);
+
+        connection.Send(msg.GetBytes());
+    }
+
+    private void OnRoomCreated(OSCMessageIn msg, IPEndPoint remote)
+    {
+        int roomID = msg.ReadInt();
+        Debug.Log($"Room created with ID {roomID}");
+    }
+
+    private void OnRoomCreatedFailed(OSCMessageIn msg, IPEndPoint remote)
+    {
+        string reason = msg.ReadString();
+        Debug.LogError("Room creation failed: " + reason);
+    }
+
+    private void OnRoomJoinSuccess(OSCMessageIn msg, IPEndPoint remote)
+    {
+        int roomID = msg.ReadInt();
+        playerID = msg.ReadInt();
+        gameController.localPlayerID = playerID;
+
+        Debug.Log($"Joined room {roomID} as Player {playerID}");
+    }
+
+    private void OnRoomJoinFailed(OSCMessageIn msg, IPEndPoint remote)
+    {
+        string reason = msg.ReadString();
+        Debug.LogError("Join failed: " + reason);
+    }
+
+    #endregion
+
+    #region Gameplay Phase
     private void OnHandChanged(OSCMessageIn msg, IPEndPoint remote)
     {
         int playerID = msg.ReadInt();
@@ -210,6 +269,6 @@ public class Client : MonoBehaviour
     {
         gameController.HandleStateChangedFromServer();
     }
-
+    #endregion
 
 }
