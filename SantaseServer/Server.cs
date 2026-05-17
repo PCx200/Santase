@@ -87,11 +87,23 @@ namespace networkingLayer
                         Room = room
                     };
 
+                    room.TryAddPlayer(conn, out int playerID);
+
                     conn.Send(new OSCMessageOut("/RoomCreated")
                         .AddInt(room.ID)
                         .GetBytes());
 
+
                     Console.WriteLine($"Room '{name}' created.");
+
+                    conn.Send(new OSCMessageOut("/RoomJoinSuccess")
+                        .AddInt(room.ID)
+                        .AddInt(playerID)
+                        .GetBytes());
+
+                    lobby.Remove(conn);
+                    lobbyDispatchers.Remove(conn);
+
                 }, OSCUtil.STRING, OSCUtil.STRING);
 
                 // JOIN ROOM
