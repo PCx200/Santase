@@ -1531,7 +1531,6 @@ MonoBehaviour:
   - {fileID: 7674503836714268557, guid: 394b54ae8fbff734988b472a4cf7953d, type: 3}
   - {fileID: 6256131058745161801, guid: c5a6f9895408ee34b92668b81d4848c8, type: 3}
   cardBack: {fileID: 3831652797676843235, guid: cc3381a366db7964bb670174a9b947c8, type: 3}
-  localPlayerID: 0
 --- !u!4 &871302146
 Transform:
   m_ObjectHideFlags: 0
@@ -2560,51 +2559,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1317047781}
   m_CullTransparentMesh: 1
---- !u!1 &1563136758
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1563136760}
-  - component: {fileID: 1563136759}
-  m_Layer: 0
-  m_Name: Client
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1563136759
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1563136758}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8205e1d76022a734eb25453871e52a66, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Client
-  gameController: {fileID: 987984122}
---- !u!4 &1563136760
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1563136758}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 562.7439, y: 0.00001, z: 14237.366}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1563175094
 GameObject:
   m_ObjectHideFlags: 0
@@ -3190,4 +3144,3 @@ SceneRoots:
   - {fileID: 1668708286}
   - {fileID: 1563175096}
   - {fileID: 1244545062}
-  - {fileID: 1563136760}

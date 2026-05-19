@@ -40,7 +40,7 @@ public class PlayedCardView : MonoBehaviour
 
     private Image GetSpot(int playerID)
     {
-        if (FindFirstObjectByType<GameController>().localPlayerID == 0) return playerID == 0 ? player1Spot : player2Spot;
+        if (GameController.Instance.localPlayerID == 0) return playerID == 0 ? player1Spot : player2Spot;
 
         else return playerID == 1 ? player1Spot : player2Spot;
     }

@@ -15,7 +15,7 @@ public class HandView : MonoBehaviour
         foreach (Transform child in root)
             Destroy(child.gameObject);
 
-        bool isLocal = (playerID == FindFirstObjectByType<GameController>().localPlayerID);
+        bool isLocal = (playerID == GameController.Instance.localPlayerID);
 
         for (int i = 0; i < hand.Count; i++)
         {
@@ -47,7 +47,7 @@ public class HandView : MonoBehaviour
     }
     private Transform GetRootForPlayer(int playerID)
     {
-        if (FindFirstObjectByType<GameController>().localPlayerID == 0)  return playerID == 0 ? player1HandRoot : player2HandRoot;
+        if (GameController.Instance.localPlayerID == 0)  return playerID == 0 ? player1HandRoot : player2HandRoot;
 
         else return playerID == 1 ? player1HandRoot : player2HandRoot;
     }

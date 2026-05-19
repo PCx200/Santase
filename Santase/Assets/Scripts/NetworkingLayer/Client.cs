@@ -15,7 +15,7 @@ public class Client : MonoBehaviour
 
     private OSCDispatcher dispatcher;
 
-    [SerializeField] private GameController gameController;
+    private float pingTimer = 0f;
 
     private void Awake()
     {
@@ -46,14 +46,51 @@ public class Client : MonoBehaviour
             if (packet != null)
                 HandlePacket(packet);
         }
+
+        pingTimer += Time.deltaTime;
+        if (pingTimer >= 2f)
+        {
+            SendPing();
+            pingTimer = 0f;
+        }
+
     }
     private void OnDestroy()
     {
-        try 
-        { 
-            connection?.Close(); 
-        } 
+        SendDisconnect();
+    }
+
+    private void OnApplicationQuit()
+    {
+        SendDisconnect();
+    }
+    private void SendPing()
+    {
+        if (connection == null) return;
+
+        try
+        {
+            var msg = new OSCMessageOut("/Ping");
+            connection.Send(msg.GetBytes());
+        }
         catch { }
+    }
+
+
+    public void SendDisconnect()
+    {
+        if (connection == null) return;
+
+        try
+        {
+            var msg = new OSCMessageOut("/Disconnect")
+                .AddInt(playerID);
+
+            connection.Send(msg.GetBytes());
+        }
+        catch { }
+
+        try { connection.Close(); } catch { }
     }
 
     private void HandlePacket(byte[] packet)
@@ -149,8 +186,7 @@ public class Client : MonoBehaviour
     {
         if (scene.name != "GameplayScene") return;
 
-        gameController = FindFirstObjectByType<GameController>();
-        gameController.localPlayerID = playerID;
+        GameController.Instance.localPlayerID = playerID;
 
         UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnGameplaySceneLoaded;
     }
@@ -187,27 +223,27 @@ public class Client : MonoBehaviour
                 hand.Add(new Card());
         }
 
-        gameController.HandleHandChangedFromServer(playerID, hand);
+        GameController.Instance.HandleHandChangedFromServer(playerID, hand);
     }
 
     private void OnKozChanged(OSCMessageIn msg, IPEndPoint remote)
     {
         string name = msg.ReadString();
         string suit = msg.ReadString();
-        gameController.HandleKozChangedFromServer(name, suit);
+        GameController.Instance.HandleKozChangedFromServer(name, suit);
     }
 
     private void OnScoreChanged(OSCMessageIn msg, IPEndPoint remote)
     {
         int p1 = msg.ReadInt();
         int p2 = msg.ReadInt();
-        gameController.HandleScoreChangedFromServer(p1, p2);
+        GameController.Instance.HandleScoreChangedFromServer(p1, p2);
     }
 
     private void OnTurnChanged(OSCMessageIn msg, IPEndPoint remote)
     {
         int turn = msg.ReadInt();
-        gameController.HandleTurnChangedFromServer(turn);
+        GameController.Instance.HandleTurnChangedFromServer(turn);
     }
 
     private void OnCardPlayed(OSCMessageIn msg, IPEndPoint remote)
@@ -216,7 +252,7 @@ public class Client : MonoBehaviour
         string name = msg.ReadString();
         string suit = msg.ReadString();
         int points = msg.ReadInt();
-        gameController.HandleCardPlayedFromServer(playerID, name, suit, points);
+        GameController.Instance.HandleCardPlayedFromServer(playerID, name, suit, points);
     }
 
     private void OnRoundOver(OSCMessageIn msg, IPEndPoint remote)
@@ -224,19 +260,19 @@ public class Client : MonoBehaviour
         int winner = msg.ReadInt();
         int gp1 = msg.ReadInt();
         int gp2 = msg.ReadInt();
-        gameController.HandleRoundOverFromServer(winner, gp1, gp2);
+        GameController.Instance.HandleRoundOverFromServer(winner, gp1, gp2);
     }
 
     private void OnNotification(OSCMessageIn msg, IPEndPoint remote)
     {
         string txt = msg.ReadString();
-        gameController.HandleNotificationFromServer(txt);
+        GameController.Instance.HandleNotificationFromServer(txt);
     }
 
     private void OnMatchOver(OSCMessageIn msg, IPEndPoint remote)
     {
         int winnerID = msg.ReadInt();
-        gameController.HandleMatchOverFromServer(winnerID);
+        GameController.Instance.HandleMatchOverFromServer(winnerID);
     }
     public void SendPlayCard(int cardIndex)
     {
@@ -265,18 +301,18 @@ public class Client : MonoBehaviour
 
     private void OnTrickEnded(OSCMessageIn msg, IPEndPoint remote)
     {
-        gameController.HandleTrickEndedFromServer();
+        GameController.Instance.HandleTrickEndedFromServer();
     }
 
     private void OnDeckClosed(OSCMessageIn msg, IPEndPoint remote)
     {
         int pid = msg.ReadInt();
-        gameController.HandleDeckClosedFromServer(pid);
+        GameController.Instance.HandleDeckClosedFromServer(pid);
     }
 
     private void OnStateChanged(OSCMessageIn msg, IPEndPoint remote)
     {
-        gameController.HandleStateChangedFromServer();
+        GameController.Instance.HandleStateChangedFromServer();
     }
     #endregion
 

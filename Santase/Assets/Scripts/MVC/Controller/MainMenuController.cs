@@ -20,8 +20,6 @@ public class MainMenuController : MonoBehaviour
         menu.RoomName = view.RoomName;
         menu.Password = view.Password;
 
-        Client.Instance.ConnectToServer(menu.IP);
-        Client.Instance.ConnectToServer(menu.IP);
         Client.Instance.CreateRoom(menu.RoomName, menu.Password);
     }
 
@@ -31,7 +29,6 @@ public class MainMenuController : MonoBehaviour
         menu.RoomName = view.RoomName;
         menu.Password = view.Password;
 
-        Client.Instance.ConnectToServer(menu.IP);
         Client.Instance.JoinRoom(menu.RoomName, menu.Password);
     }
 }

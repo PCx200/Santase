@@ -23,14 +23,14 @@ public class ScoreView : MonoBehaviour
 
     private TextMeshProUGUI GetRoundScoreSpot(int playerID)
     {
-        if (FindFirstObjectByType<GameController>().localPlayerID == 0) return playerID == 0 ? p1Score : p2Score;
+        if (GameController.Instance.localPlayerID == 0) return playerID == 0 ? p1Score : p2Score;
 
         else return playerID == 1 ? p1Score : p2Score;
     }
 
     private TextMeshProUGUI GetGameScoreSpot(int playerID)
     {
-        if (FindFirstObjectByType<GameController>().localPlayerID == 0) return playerID == 0 ? player1Result : player2Result;
+        if (GameController.Instance.localPlayerID == 0) return playerID == 0 ? player1Result : player2Result;
 
         else return playerID == 1 ? player1Result : player2Result;
     }

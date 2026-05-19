@@ -5,6 +5,7 @@ using OSCTools;
 public class GameController : MonoBehaviour
 {
     //Removed the Model -> The server will have the controll over it 
+    public static GameController Instance;
 
     [Header("Multiplayer")]
     public int localPlayerID = -1;
@@ -21,6 +22,18 @@ public class GameController : MonoBehaviour
 
     [Header("Controllers")]
     [SerializeField] SFXController sfxController;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     private void Start()
     {
