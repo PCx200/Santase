@@ -16,7 +16,7 @@ namespace networkingLayer
 
     public class Server
     {
-        private TcpListener listener;
+        private TcpListener? listener;
         private List<TcpNetworkConnection> connections = new();
 
         // roomName -> RoomInfo
@@ -30,18 +30,48 @@ namespace networkingLayer
 
         public void Start(int port)
         {
-            Console.WriteLine($"Starting Santase server on port {port}...");
-            listener = new TcpListener(IPAddress.Any, port);
-            listener.Start();
+            try
+            {
+                Console.WriteLine($"Starting Santase server on port {port}...");
+                listener = new TcpListener(IPAddress.Any, port);
+                listener.Start();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Server.Start: {ex}");
+            }
         }
 
         public void Update()
         {
             while (true)
             {
-                AcceptNewConnections();
-                UpdateLobby();
-                UpdateRooms();
+                try
+                {
+                    AcceptNewConnections();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Server.Update -> AcceptNewConnections: {ex}");
+                }
+
+                try
+                {
+                    UpdateLobby();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Server.Update -> UpdateLobby: {ex}");
+                }
+
+                try
+                {
+                    UpdateRooms();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Server.Update -> UpdateRooms: {ex}");
+                }
 
                 System.Threading.Thread.Sleep(10);
             }
@@ -49,137 +79,245 @@ namespace networkingLayer
 
         private void AcceptNewConnections()
         {
-            while (listener.Pending())
+            try
             {
-                TcpClient client = listener.AcceptTcpClient();
-                TcpNetworkConnection conn = new TcpNetworkConnection(client);
-
-                connections.Add(conn);
-                lobby.Add(conn);
-
-                Console.WriteLine($"New Connection from {conn.Remote}");
-
-                // Create dispatcher for this connection
-                var dispatcher = new OSCDispatcher();
-                dispatcher.ShowIncomingMessages = false;
-
-                // CREATE ROOM
-                dispatcher.AddListener("/CreateRoom", (msg, remote) =>
+                while (listener!.Pending())
                 {
-                    string name = msg.ReadString();
-                    string pass = msg.ReadString();
+                    TcpClient client = listener.AcceptTcpClient();
+                    TcpNetworkConnection conn = new TcpNetworkConnection(client);
 
-                    if (rooms.ContainsKey(name))
+                    connections.Add(conn);
+                    lobby.Add(conn);
+
+                    Console.WriteLine($"New Connection from {conn.Remote}");
+
+                    // Create dispatcher for this connection
+                    var dispatcher = new OSCDispatcher();
+                    dispatcher.ShowIncomingMessages = false;
+
+                    try
                     {
-                        conn.Send(new OSCMessageOut("/RoomCreatedFailed")
-                            .AddString("Room already exists")
-                            .GetBytes());
-                        return;
+                        dispatcher.AddListener("/CreateRoom", (msg, remote) => OnCreateRoom(conn, msg), OSCUtil.STRING, OSCUtil.STRING);
+
+                        dispatcher.AddListener("/JoinRoom", (msg, remote) => OnJoinRoom(conn, msg), OSCUtil.STRING, OSCUtil.STRING);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[ERROR] Registering lobby listeners for {conn.Remote}: {ex}");
                     }
 
-                    int seed = new Random().Next();
-                    Room room = new Room(rooms.Count, seed);
+                    lobbyDispatchers[conn] = dispatcher;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] AcceptNewConnections: {ex}");
+            }
+            
+        }
 
-                    rooms[name] = new RoomInfo
-                    {
-                        Name = name,
-                        Password = pass,
-                        Room = room
-                    };
+        private void OnCreateRoom(TcpNetworkConnection conn, OSCMessageIn msg)
+        {
+            try
+            {
+                string name = msg.ReadString();
+                string pass = msg.ReadString();
 
-                    room.TryAddPlayer(conn, out int playerID);
-
-                    conn.Send(new OSCMessageOut("/RoomCreated")
-                        .AddInt(room.ID)
-                        .GetBytes());
-
-
-                    Console.WriteLine($"Room '{name}' created.");
-
-                    conn.Send(new OSCMessageOut("/RoomJoinSuccess")
-                        .AddInt(room.ID)
-                        .AddInt(playerID)
-                        .GetBytes());
-
-                    lobby.Remove(conn);
-                    lobbyDispatchers.Remove(conn);
-
-                }, OSCUtil.STRING, OSCUtil.STRING);
-
-                // JOIN ROOM
-                dispatcher.AddListener("/JoinRoom", (msg, remote) =>
+                if (rooms.ContainsKey(name))
                 {
-                    string name = msg.ReadString();
-                    string pass = msg.ReadString();
+                    SendRoomCreatedFailed(conn, "Room already exists");
+                    return;
+                }
 
-                    if (!rooms.ContainsKey(name))
-                    {
-                        conn.Send(new OSCMessageOut("/RoomJoinFailed")
-                            .AddString("Room not found")
-                            .GetBytes());
-                        return;
-                    }
+                int seed = new Random().Next();
+                Room room = new Room(rooms.Count, seed);
 
-                    var info = rooms[name];
+                rooms[name] = new RoomInfo
+                {
+                    Name = name,
+                    Password = pass,
+                    Room = room
+                };
 
-                    if (info.Password != pass)
-                    {
-                        conn.Send(new OSCMessageOut("/RoomJoinFailed")
-                            .AddString("Wrong password")
-                            .GetBytes());
-                        return;
-                    }
+                room.TryAddPlayer(conn, out int playerID);
 
-                    if (!info.Room.TryAddPlayer(conn, out int playerID))
-                    {
-                        conn.Send(new OSCMessageOut("/RoomJoinFailed")
-                            .AddString("Room full")
-                            .GetBytes());
-                        return;
-                    }
+                SendRoomCreated(conn, room.ID);
 
-                    conn.Send(new OSCMessageOut("/RoomJoinSuccess")
-                        .AddInt(info.Room.ID)
-                        .AddInt(playerID)
-                        .GetBytes());
+                SendRoomJoinSuccess(conn, room.ID, playerID);
 
-                    Console.WriteLine($"Player {playerID} joined room '{name}'");
+                RemoveFromLobby(conn);
 
-                    // Remove from lobby
-                    lobby.Remove(conn);
-                    lobbyDispatchers.Remove(conn);
+                Console.WriteLine($"Room '{name}' created.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] /CreateRoom from {conn.Remote}: {ex}");
+            }
+        }
 
-                    if (info.Room.IsFull)
-                    {
-                        Console.WriteLine($"Room '{name}' is full. Starting game...");
-                        info.Room.Model.StartGame();
-                    }
-                }, OSCUtil.STRING, OSCUtil.STRING);
+        private void OnJoinRoom(TcpNetworkConnection conn, OSCMessageIn msg)
+        {
+            try
+            {
+                string name = msg.ReadString();
+                string pass = msg.ReadString();
 
-                lobbyDispatchers[conn] = dispatcher;
+                if (!rooms.ContainsKey(name))
+                {
+                    SendRoomJoinFailed(conn, "Room not found");
+                    return;
+                }
+
+                var info = rooms[name];
+
+                if (info.Password != pass)
+                {
+                    SendRoomJoinFailed(conn, "Wrong password");
+                    return;
+                }
+
+                if (!info.Room.TryAddPlayer(conn, out int playerID))
+                {
+                    SendRoomJoinFailed(conn, "Room full");
+                    return;
+                }
+
+                SendRoomJoinSuccess(conn, info.Room.ID, playerID);
+
+                Console.WriteLine($"Player {playerID} joined room '{name}'");
+
+                RemoveFromLobby(conn);
+
+                if (info.Room.IsFull)
+                {
+                    Console.WriteLine($"Room '{name}' is full. Starting game...");
+                    info.Room.Model.StartGame();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] /JoinRoom from {conn.Remote}: {ex}");
+            }
+        }
+
+        private void SendRoomCreatedFailed(TcpNetworkConnection conn, string reason)
+        {
+            try
+            {
+                conn.Send(new OSCMessageOut("/RoomCreatedFailed")
+                    .AddString(reason)
+                    .GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] SendRoomCreatedFailed to {conn.Remote}: {ex}");
+            }
+        }
+
+        private void SendRoomJoinFailed(TcpNetworkConnection conn, string reason)
+        {
+            try
+            {
+                conn.Send(new OSCMessageOut("/RoomJoinFailed")
+                    .AddString(reason)
+                    .GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] SendRoomJoinFailed to {conn.Remote}: {ex}");
+            }
+        }
+
+        private void SendRoomCreated(TcpNetworkConnection conn, int roomID)
+        {
+            try
+            {
+                conn.Send(new OSCMessageOut("/RoomCreated")
+                    .AddInt(roomID)
+                    .GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] SendRoomCreated to {conn.Remote}: {ex}");
+            }
+        }
+
+        private void SendRoomJoinSuccess(TcpNetworkConnection conn, int roomID, int playerID)
+        {
+            try
+            {
+                conn.Send(new OSCMessageOut("/RoomJoinSuccess")
+                    .AddInt(roomID)
+                    .AddInt(playerID)
+                    .GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] SendRoomJoinSuccess to {conn.Remote}: {ex}");
+            }
+        }
+
+        private void RemoveFromLobby(TcpNetworkConnection conn)
+        {
+            try
+            {
+                lobby.Remove(conn);
+                lobbyDispatchers.Remove(conn);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] RemoveFromLobby {conn.Remote}: {ex}");
             }
         }
 
         private void UpdateLobby()
         {
-            foreach (var conn in new List<TcpNetworkConnection>(lobby))
+            try
             {
-                while (conn.Available() > 0)
+                foreach (var conn in new List<TcpNetworkConnection>(lobby))
                 {
-                    var packet = conn.GetPacket();
-                    if (packet != null)
+                    try
                     {
-                        lobbyDispatchers[conn].HandlePacket(packet, conn.Remote);
+                        while (conn.Available() > 0)
+                        {
+                            var packet = conn.GetPacket();
+                            if (packet != null)
+                            {
+                                lobbyDispatchers[conn].HandlePacket(packet, conn.Remote);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[ERROR] UpdateLobby connection {conn.Remote}: {ex}");
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] UpdateLobby outer: {ex}");
             }
         }
 
         private void UpdateRooms()
         {
-            foreach (var kvp in rooms)
+            try
             {
-                kvp.Value.Room.Update();
+                foreach (var kvp in rooms)
+                {
+                    try
+                    {
+                        kvp.Value.Room.Update();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[ERROR] UpdateRooms room '{kvp.Key}': {ex}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] UpdateRooms outer: {ex}");
             }
         }
     }
