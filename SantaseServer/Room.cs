@@ -1,10 +1,9 @@
-using NetworkConnections;
-using OSCTools;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using UnityEngine;
+using NetworkConnections;
+using OSCTools;
 
 namespace networkingLayer
 {
@@ -13,8 +12,8 @@ namespace networkingLayer
         public int ID { get; }
         public GameModel Model { get; }
 
-        public TcpNetworkConnection Player1 { get; private set; }
-        public TcpNetworkConnection Player2 { get; private set; }
+        public TcpNetworkConnection? Player1 { get; private set; }
+        public TcpNetworkConnection? Player2 { get; private set; }
 
         public bool IsFull => Player1 != null && Player2 != null;
 
@@ -28,31 +27,47 @@ namespace networkingLayer
             dispatcher = new OSCDispatcher();
             dispatcher.ShowIncomingMessages = false;
 
-            SubscribeModelEvents();
-            RegisterRpcHandlers();
+            try
+            {
+                SubscribeModelEvents();
+                RegisterRpcHandlers();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} constructor: {ex}");
+            }
+
         }
 
         public bool TryAddPlayer(TcpNetworkConnection player, out int playerID)
         {
-            if (Player1 == null)
+            try
             {
-                Player1 = player;
-                playerID = 0;
-                SendPlayerInfo(player, playerID);
-                SendRoomInfo(player);
-                return true;
+                if (Player1 == null)
+                {
+                    Player1 = player;
+                    playerID = 0;
+                    SendPlayerInfo(player, playerID);
+                    SendRoomInfo(player);
+                    return true;
+                }
+                if (Player2 == null)
+                {
+                    Player2 = player;
+                    playerID = 1;
+                    SendPlayerInfo(player, playerID);
+                    SendRoomInfo(player);
+                    return true;
+                }
+                playerID = -1;
+                return false;
             }
-            if (Player2 == null)
+            catch (Exception ex)
             {
-                Player2 = player;
-                playerID = 1;
-                SendPlayerInfo(player, playerID);
-                SendRoomInfo(player);
-                return true;
+                Console.WriteLine($"[ERROR] Room {ID} TryAddPlayer: {ex}");
+                playerID = -1;
+                return false;
             }
-
-            playerID = -1;
-            return false;
 
         }
 
@@ -78,48 +93,98 @@ namespace networkingLayer
 
         private void ProcessConnection(TcpNetworkConnection connection)
         {
-            while (connection.Available() > 0)
+            try
             {
-                var packet = connection.GetPacket();
-                if (packet != null)
+                while (connection.Available() > 0)
                 {
-                    HandlePacket(packet, connection.Remote);
+                    var packet = connection.GetPacket();
+                    if (packet != null)
+                    {
+                        HandlePacket(packet, connection.Remote);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} ProcessConnection {connection.Remote}: {ex}");
             }
         }
 
         private void HandlePacket(byte[] packet, IPEndPoint remote)
         {
-            dispatcher.HandlePacket(packet, remote);
+            try
+            {
+                dispatcher.HandlePacket(packet, remote);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} HandlePacket from {remote}: {ex}");
+            }
         }
 
         private void SendPlayerInfo(TcpNetworkConnection player, int playerID)
         {
-            var msg = new OSCMessageOut("/PlayerInfo").AddInt(playerID);
-            player.Send(msg.GetBytes());
+            try
+            {
+                var msg = new OSCMessageOut("/PlayerInfo").AddInt(playerID);
+                player.Send(msg.GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} SendPlayerInfo: {ex}");
+            }
         }
 
         private void SendRoomInfo(TcpNetworkConnection player)
         {
-            var msg = new OSCMessageOut("/RoomInfo")
+            try
+            {
+                var msg = new OSCMessageOut("/RoomInfo")
                 .AddInt(ID);
-            player.Send(msg.GetBytes());
+                player.Send(msg.GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} SendRoomInfo: {ex}");
+            }
         }
 
         private void Broadcast(byte[] packet)
         {
-            if (Player1 != null) Player1.Send(packet);
-            if (Player2 != null) Player2.Send(packet);
+            try
+            {
+                if (Player1 != null) Player1.Send(packet);
+                if (Player2 != null) Player2.Send(packet);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} Broadcast: {ex}");
+            }
         }
 
         private void SubscribeModelEvents()
         {
             // server sends full card data
-            Model.OnHandChanged += (playerID, hand) =>
+            Model.OnHandChanged += OnHandChanged;
+            Model.OnKozChanged += OnKozChanged;
+            Model.OnScoreChanged += OnScoreChanged;
+            Model.OnTurnChanged += OnTurnChanged;
+            Model.OnCardPlayed += OnCardPlayed;
+            Model.OnTrickEnded += OnTrickEnded;
+            Model.OnRoundOver += OnRoundOver;
+            Model.OnDeckClosed += OnDeckClosed;
+            Model.OnNotification += OnNotification;
+            Model.OnStateChanged += OnStateChanged;
+            Model.OnMatchOver += OnMatchOver;
+        }
+
+        private void OnHandChanged(int playerID, List<Card> hand)
+        {
+            try
             {
                 var ownerMsg = new OSCMessageOut("/HandChanged")
-                    .AddInt(playerID)
-                    .AddInt(hand.Count);
+                .AddInt(playerID)
+                .AddInt(hand.Count);
 
                 foreach (var card in hand)
                 {
@@ -142,115 +207,244 @@ namespace networkingLayer
                     Player2?.Send(ownerMsg.GetBytes());
                     Player1?.Send(opponentMsg.GetBytes());
                 }
-            };
-
-            Model.OnKozChanged += (koz) =>
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnHandChanged: {ex}");
+            }
+        }
+        private void OnKozChanged(Card koz)
+        {
+            try
             {
                 var msg = new OSCMessageOut("/KozChanged")
-                    .AddString(koz.GetName())
-                    .AddString(koz.GetSuit());
-                Broadcast(msg.GetBytes());
-            };
+                .AddString(koz.GetName())
+                .AddString(koz.GetSuit());
 
-            Model.OnScoreChanged += (p1, p2) =>
+                Broadcast(msg.GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnKozChanged: {ex}");
+            }
+        }
+        private void OnScoreChanged(int p1, int p2)
+        {
+            try
             {
                 var msg = new OSCMessageOut("/ScoreChanged")
-                    .AddInt(p1)
-                    .AddInt(p2);
-                Broadcast(msg.GetBytes());
-            };
+                .AddInt(p1)
+                .AddInt(p2);
 
-            Model.OnTurnChanged += (playerID) =>
+                Broadcast(msg.GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnScoreChanged: {ex}");
+            }
+
+        }
+        private void OnTurnChanged(int playerID)
+        {
+            try
             {
                 var msg = new OSCMessageOut("/TurnChanged")
-                    .AddInt(playerID);
-                Broadcast(msg.GetBytes());
-            };
+                .AddInt(playerID);
 
-            Model.OnCardPlayed += (playerID, card) =>
+                Broadcast(msg.GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnTurnChanged: {ex}");
+            }
+
+        }
+        private void OnCardPlayed(int playerID, Card card)
+        {
+            try
             {
                 var msg = new OSCMessageOut("/CardPlayed")
-                    .AddInt(playerID)
-                    .AddString(card.GetName())
-                    .AddString(card.GetSuit());
-                Broadcast(msg.GetBytes());
-            };
+                .AddInt(playerID)
+                .AddString(card.GetName())
+                .AddString(card.GetSuit());
 
-            Model.OnTrickEnded += () =>
+                Broadcast(msg.GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnCardPlayed: {ex}");
+            }
+
+        }
+        private void OnTrickEnded()
+        {
+            try
             {
                 var msg = new OSCMessageOut("/TrickEnded");
                 Broadcast(msg.GetBytes());
-            };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnTrickEnded: {ex}");
+            }
 
-            Model.OnRoundOver += (winnerID, gamePoints) =>
+        }
+        private void OnRoundOver(int winnerID, (int, int) gamePoints)
+        {
+            try
             {
                 var msg = new OSCMessageOut("/RoundOver")
                     .AddInt(winnerID)
                     .AddInt(gamePoints.Item1)
                     .AddInt(gamePoints.Item2);
+
                 Broadcast(msg.GetBytes());
 
                 Task.Delay(2000).ContinueWith(_ => Model.RestartRound());
-            };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnRoundOver: {ex}");
+            }
 
-            Model.OnDeckClosed += (playerID) =>
+        }
+        private void OnDeckClosed(int playerID)
+        {
+            try
             {
                 var msg = new OSCMessageOut("/DeckClosed")
                     .AddInt(playerID);
-                Broadcast(msg.GetBytes());
-            };
 
-            Model.OnNotification += (txt) =>
+                Broadcast(msg.GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnDeckClosed: {ex}");
+            }
+
+        }
+        private void OnNotification(string txt)
+        {
+            try
             {
                 var msg = new OSCMessageOut("/Notification")
                     .AddString(txt);
-                Broadcast(msg.GetBytes());
-            };
 
-            Model.OnStateChanged += () =>
+                Broadcast(msg.GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnNotification: {ex}");
+            }
+
+        }
+        private void OnStateChanged()
+        {
+            try
             {
                 var msg = new OSCMessageOut("/StateChanged");
-                Broadcast(msg.GetBytes());
-            };
 
-            Model.OnMatchOver += (winnerID) =>
+                Broadcast(msg.GetBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnStateChanged: {ex}");
+            }
+
+        }
+        private void OnMatchOver(int winnerID)
+        {
+            try
             {
                 var msg = new OSCMessageOut("/MatchOver")
                     .AddInt(winnerID);
+
                 Broadcast(msg.GetBytes());
-            };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} OnMatchOver: {ex}");
+            }
+
         }
 
         private void RegisterRpcHandlers()
         {
-            // /PlayCard int playerID, int cardIndex
-            dispatcher.AddListener("/PlayCard", (msg, remote) =>
+            try
+            {
+                // /PlayCard int playerID, int cardIndex
+                dispatcher.AddListener("/PlayCard", OnPlayCard, OSCUtil.INT, OSCUtil.INT);
+
+                // /CloseDeck int playerID
+                dispatcher.AddListener("/CloseDeck", OnCloseDeck, OSCUtil.INT);
+
+                // /ExchangeKoz int playerID
+                dispatcher.AddListener("/ExchangeKoz", OnExchangeKoz, OSCUtil.INT);
+
+                // /HelloClient string version
+                dispatcher.AddListener("/HelloClient", OnHelloClient, OSCUtil.STRING);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} RegisterRpcHandlers: {ex}");
+            }
+
+        }
+
+        private void OnPlayCard(OSCMessageIn msg, IPEndPoint remote)
+        {
+            try
             {
                 int playerID = msg.ReadInt();
                 int cardIndex = msg.ReadInt();
                 Model.RequestPlayCard(playerID, cardIndex);
-            }, OSCUtil.INT, OSCUtil.INT);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} /PlayCard from {remote}: {ex}");
+            }
 
-            // /CloseDeck int playerID
-            dispatcher.AddListener("/CloseDeck", (msg, remote) =>
+        }
+
+        private void OnCloseDeck(OSCMessageIn msg, IPEndPoint remote)
+        {
+            try
             {
                 int playerID = msg.ReadInt();
                 Model.RequestCloseDeck(playerID);
-            }, OSCUtil.INT);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} /CloseDeck from {remote}: {ex}");
+            }
 
-            // /ExchangeKoz int playerID
-            dispatcher.AddListener("/ExchangeKoz", (msg, remote) =>
+        }
+
+        private void OnExchangeKoz(OSCMessageIn msg, IPEndPoint remote)
+        {
+            try
             {
                 int playerID = msg.ReadInt();
                 Model.RequestExchangeKoz(playerID);
-            }, OSCUtil.INT);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} /ExchangeKoz from {remote}: {ex}");
+            }
 
-            // /HelloClient string version
-            dispatcher.AddListener("/HelloClient", (msg, remote) =>
+        }
+        private void OnHelloClient(OSCMessageIn msg, IPEndPoint remote)
+        {
+            try
             {
                 string version = msg.ReadString();
                 Console.WriteLine($"Client {remote} connected with version {version}");
-            }, OSCUtil.STRING);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Room {ID} /HelloClient from {remote}: {ex}");
+            }
+
         }
     }
 }
