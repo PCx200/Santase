@@ -98,16 +98,44 @@ namespace networkingLayer
                 while (connection.Available() > 0)
                 {
                     var packet = connection.GetPacket();
-                    if (packet != null)
+                    if (packet == null)
                     {
-                        HandlePacket(packet, connection.Remote);
+
+                        HandleDisconnect(connection);
+                        return;
                     }
+
+                    HandlePacket(packet, connection.Remote);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] Room {ID} ProcessConnection {connection.Remote}: {ex}");
+                HandleDisconnect(connection);
             }
+        }
+
+        public void HandleDisconnect(TcpNetworkConnection connection)
+        {
+            Console.WriteLine($"[INFO] Player disconnected: {connection.Remote}");
+
+            // Remove from room
+            DisconnectPlayer(connection);
+
+            // Close socket
+            try { connection.Close(); } catch { }
+
+            try
+            {
+                var msg = new OSCMessageOut("/PlayerDisconnected");
+                Broadcast(msg.GetBytes());
+            }
+            catch { }
+        }
+        public void DisconnectPlayer(TcpNetworkConnection conn)
+        {
+            if (Player1 == conn) Player1 = null;
+            if (Player2 == conn) Player2 = null;
         }
 
         private void HandlePacket(byte[] packet, IPEndPoint remote)

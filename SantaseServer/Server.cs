@@ -54,7 +54,6 @@ namespace networkingLayer
                 {
                     Console.WriteLine($"[ERROR] Server.Update -> AcceptNewConnections: {ex}");
                 }
-
                 try
                 {
                     UpdateLobby();
@@ -97,6 +96,8 @@ namespace networkingLayer
 
                     try
                     {
+                        dispatcher.AddListener("/Disconnect", (msg, remote) => OnClientDisconnect(conn, msg), OSCUtil.INT);
+
                         dispatcher.AddListener("/CreateRoom", (msg, remote) => OnCreateRoom(conn, msg), OSCUtil.STRING, OSCUtil.STRING);
 
                         dispatcher.AddListener("/JoinRoom", (msg, remote) => OnJoinRoom(conn, msg), OSCUtil.STRING, OSCUtil.STRING);
@@ -115,6 +116,20 @@ namespace networkingLayer
             }
             
         }
+
+        private void OnClientDisconnect(TcpNetworkConnection conn, OSCMessageIn msg)
+        {
+            try
+            {
+                Console.WriteLine($"[INFO] Client sent /Disconnect: {conn.Remote}");
+                HandleDisconnect(conn);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] /Disconnect from {conn.Remote}: {ex}");
+            }
+        }
+
 
         private void OnCreateRoom(TcpNetworkConnection conn, OSCMessageIn msg)
         {
@@ -281,21 +296,42 @@ namespace networkingLayer
                         while (conn.Available() > 0)
                         {
                             var packet = conn.GetPacket();
-                            if (packet != null)
+                            if (packet == null)
                             {
-                                lobbyDispatchers[conn].HandlePacket(packet, conn.Remote);
+                                HandleDisconnect(conn);
+                                continue;
                             }
+
+                            lobbyDispatchers[conn].HandlePacket(packet, conn.Remote);
                         }
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"[ERROR] UpdateLobby connection {conn.Remote}: {ex}");
+                        HandleDisconnect(conn);
                     }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] UpdateLobby outer: {ex}");
+            }
+        }
+        private void HandleDisconnect(TcpNetworkConnection conn)
+        {
+            Console.WriteLine($"[INFO] Client disconnected: {conn.Remote}");
+
+            try { conn.Close(); } catch { }
+
+            lobby.Remove(conn);
+            lobbyDispatchers.Remove(conn);
+
+            // Remove from rooms
+            foreach (var kvp in rooms)
+            {
+                var room = kvp.Value.Room;
+
+                room.HandleDisconnect(conn);
             }
         }
 
