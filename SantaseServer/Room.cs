@@ -19,6 +19,8 @@ namespace networkingLayer
 
         private OSCDispatcher dispatcher;
 
+        public event Action<int>? OnRoomEmpty;
+
         public Room(int id, int seed)
         {
             ID = id;
@@ -119,18 +121,27 @@ namespace networkingLayer
         {
             Console.WriteLine($"[INFO] Player disconnected: {connection.Remote}");
 
-            // Remove from room
+            bool wasPlayer1 = (connection == Player1);
+            bool wasPlayer2 = (connection == Player2);
+
             DisconnectPlayer(connection);
 
-            // Close socket
             try { connection.Close(); } catch { }
 
+            // Notify remaining player
             try
             {
                 var msg = new OSCMessageOut("/PlayerDisconnected");
                 Broadcast(msg.GetBytes());
             }
             catch { }
+
+            // Delete room if empty
+            if (Player1 == null && Player2 == null)
+            {
+                OnRoomEmpty?.Invoke(ID);
+                return;
+            }
         }
         public void DisconnectPlayer(TcpNetworkConnection conn)
         {
@@ -401,13 +412,13 @@ namespace networkingLayer
             try
             {
                 // /PlayCard int playerID, int cardIndex
-                dispatcher.AddListener("/PlayCard", OnPlayCard, OSCUtil.INT, OSCUtil.INT);
+                dispatcher.AddListener("/PlayCard", OnPlayCard, OSCUtil.INT);
 
                 // /CloseDeck int playerID
-                dispatcher.AddListener("/CloseDeck", OnCloseDeck, OSCUtil.INT);
+                dispatcher.AddListener("/CloseDeck", OnCloseDeck);
 
                 // /ExchangeKoz int playerID
-                dispatcher.AddListener("/ExchangeKoz", OnExchangeKoz, OSCUtil.INT);
+                dispatcher.AddListener("/ExchangeKoz", OnExchangeKoz);
 
                 // /HelloClient string version
                 dispatcher.AddListener("/HelloClient", OnHelloClient, OSCUtil.STRING);
@@ -423,7 +434,9 @@ namespace networkingLayer
         {
             try
             {
-                int playerID = msg.ReadInt();
+                int playerID = GetPlayerID(remote);
+                if (playerID == -1) return;
+
                 int cardIndex = msg.ReadInt();
                 Model.RequestPlayCard(playerID, cardIndex);
             }
@@ -438,7 +451,9 @@ namespace networkingLayer
         {
             try
             {
-                int playerID = msg.ReadInt();
+                int playerID = GetPlayerID(remote);
+                if (playerID == -1) return;
+
                 Model.RequestCloseDeck(playerID);
             }
             catch (Exception ex)
@@ -452,7 +467,9 @@ namespace networkingLayer
         {
             try
             {
-                int playerID = msg.ReadInt();
+                int playerID = GetPlayerID(remote);
+                if (playerID == -1) return;
+
                 Model.RequestExchangeKoz(playerID);
             }
             catch (Exception ex)
@@ -473,6 +490,13 @@ namespace networkingLayer
                 Console.WriteLine($"[ERROR] Room {ID} /HelloClient from {remote}: {ex}");
             }
 
+        }
+
+        private int GetPlayerID(IPEndPoint remote)
+        {
+            if (Player1 != null && Player1.Remote.Equals(remote)) return 0;
+            if (Player2 != null && Player2.Remote.Equals(remote)) return 1;
+            return -1;
         }
     }
 }

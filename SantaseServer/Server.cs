@@ -163,10 +163,25 @@ namespace networkingLayer
                 RemoveFromLobby(conn);
 
                 Console.WriteLine($"Room '{name}' created.");
+
+                room.OnRoomEmpty += HandleRoomEmpty;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] /CreateRoom from {conn.Remote}: {ex}");
+            }
+        }
+
+        private void HandleRoomEmpty(int roomID)
+        {
+            foreach (var kvp in rooms)
+            {
+                if (kvp.Value.Room.ID == roomID)
+                {
+                    rooms.Remove(kvp.Key);
+                    Console.WriteLine($"[INFO] Room {roomID} deleted (empty).");
+                    break;
+                }
             }
         }
 
