@@ -138,6 +138,7 @@ public class Client : MonoBehaviour
         dispatcher.AddListener("/TrickEnded", OnTrickEnded);
         dispatcher.AddListener("/DeckClosed", OnDeckClosed, OSCUtil.INT);
         dispatcher.AddListener("/StateChanged", OnStateChanged);
+        dispatcher.AddListener("/PlayerDisconnected", OnPlayerDisconnected);
     }
 
     #region Lobby Phase
@@ -310,6 +311,13 @@ public class Client : MonoBehaviour
     private void OnStateChanged(OSCMessageIn msg, IPEndPoint remote)
     {
         GameController.Instance.HandleStateChangedFromServer();
+    }
+
+    private void OnPlayerDisconnected(OSCMessageIn msg, IPEndPoint remote)
+    {
+        Debug.Log("Opponent disconnected — returning to main menu.");
+        playerID = -1;
+        UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenuScene");
     }
     #endregion
 

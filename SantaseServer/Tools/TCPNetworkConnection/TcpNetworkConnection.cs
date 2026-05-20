@@ -33,6 +33,9 @@ namespace NetworkConnections {
 
 		public ConnectionStatus Status { get; private set; } = ConnectionStatus.Connecting;
 
+		/// <summary>Fired once when a send fails or the remote end closes the connection.</summary>
+		public event Action? ConnectionLost;
+
 		readonly TcpClient socket;
 
 		// Internal packet reading state:
@@ -168,8 +171,36 @@ namespace NetworkConnections {
 				}
 			} catch (Exception error) {
 				ConnectionLog.WriteLine("NetworkConnection.Send: " + error.Message);
-				Close();
+				MarkConnectionLost();
 			}
+		}
+
+		/// <summary>
+		/// Polls the socket and refreshes <see cref="Status"/>. Call every frame even when no packets are queued.
+		/// </summary>
+		public bool IsAlive() {
+			if (Status != ConnectionStatus.Connected) return false;
+			Update();
+			if (Status != ConnectionStatus.Connected) return false;
+
+			try {
+				if (socket.Connected && socket.Client.Poll(0, SelectMode.SelectRead) && socket.Client.Available == 0) {
+					byte[] probe = new byte[1];
+					if (socket.Client.Receive(probe, 0, 1, SocketFlags.Peek) == 0)
+						MarkConnectionLost();
+				}
+			} catch {
+				MarkConnectionLost();
+			}
+
+			return Status == ConnectionStatus.Connected;
+		}
+
+		void MarkConnectionLost() {
+			if (Status == ConnectionStatus.Disconnected) return;
+			Status = ConnectionStatus.Disconnected;
+			try { socket.Close(); } catch { }
+			ConnectionLost?.Invoke();
 		}
 
 		/// <summary>
@@ -201,8 +232,9 @@ namespace NetworkConnections {
 		/// Call this when done, to clean up resources.
 		/// </summary>
 		public void Close() {
+			if (Status == ConnectionStatus.Disconnected) return;
 			Status = ConnectionStatus.Disconnected;
-			socket.Close();
+			try { socket.Close(); } catch { }
 		}
 	}
 }

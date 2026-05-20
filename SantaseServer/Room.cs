@@ -73,75 +73,36 @@ namespace networkingLayer
 
         }
 
-        public void Update()
+        public void ReceivePacket(byte[] packet, IPEndPoint remote)
         {
-            try
-            {
-                if (Player1 != null)
-                {
-                    ProcessConnection(Player1);
-                }
-                if (Player2 != null)
-                {
-                    ProcessConnection(Player2);
-                }
-            }
-            catch (Exception ex)
-            {
-
-                Console.WriteLine($"[ROOM {ID}] Error: {ex}");
-            }
-        }
-
-        private void ProcessConnection(TcpNetworkConnection connection)
-        {
-            try
-            {
-                while (connection.Available() > 0)
-                {
-                    var packet = connection.GetPacket();
-                    if (packet == null)
-                    {
-
-                        HandleDisconnect(connection);
-                        return;
-                    }
-
-                    HandlePacket(packet, connection.Remote);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Room {ID} ProcessConnection {connection.Remote}: {ex}");
-                HandleDisconnect(connection);
-            }
+            HandlePacket(packet, remote);
         }
 
         public void HandleDisconnect(TcpNetworkConnection connection)
         {
             Console.WriteLine($"[INFO] Player disconnected: {connection.Remote}");
 
-            bool wasPlayer1 = (connection == Player1);
-            bool wasPlayer2 = (connection == Player2);
+            TcpNetworkConnection? survivor = null;
+            if (Player1 == connection) survivor = Player2;
+            else if (Player2 == connection) survivor = Player1;
 
             DisconnectPlayer(connection);
 
-            try { connection.Close(); } catch { }
-
-            // Notify remaining player
-            try
+            if (survivor != null)
             {
-                var msg = new OSCMessageOut("/PlayerDisconnected");
-                Broadcast(msg.GetBytes());
+                try
+                {
+                    var msg = new OSCMessageOut("/PlayerDisconnected");
+                    survivor.Send(msg.GetBytes());
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Room {ID} notify survivor: {ex}");
+                }
             }
-            catch { }
 
-            // Delete room if empty
             if (Player1 == null && Player2 == null)
-            {
                 OnRoomEmpty?.Invoke(ID);
-                return;
-            }
         }
         public void DisconnectPlayer(TcpNetworkConnection conn)
         {

@@ -22,11 +22,14 @@ namespace networkingLayer
         // roomName -> RoomInfo
         private Dictionary<string, RoomInfo> rooms = new();
 
-        // connections that are NOT in a room yet
+        // Every live client stays here for I/O polling and disconnect detection.
         private HashSet<TcpNetworkConnection> lobby = new();
 
-        // dispatcher for each lobby connection
+        // Lobby OSC handlers (/CreateRoom, /JoinRoom, /Disconnect) — kept for the connection's lifetime.
         private Dictionary<TcpNetworkConnection, OSCDispatcher> lobbyDispatchers = new();
+
+        // Which room a connection belongs to during gameplay (lobby membership is unchanged).
+        private Dictionary<TcpNetworkConnection, Room> connectionRooms = new();
 
         public void Start(int port)
         {
@@ -63,15 +66,6 @@ namespace networkingLayer
                     Console.WriteLine($"[ERROR] Server.Update -> UpdateLobby: {ex}");
                 }
 
-                try
-                {
-                    UpdateRooms();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[ERROR] Server.Update -> UpdateRooms: {ex}");
-                }
-
                 System.Threading.Thread.Sleep(10);
             }
         }
@@ -84,6 +78,7 @@ namespace networkingLayer
                 {
                     TcpClient client = listener.AcceptTcpClient();
                     TcpNetworkConnection conn = new TcpNetworkConnection(client);
+                    conn.ConnectionLost += () => HandleDisconnect(conn);
 
                     connections.Add(conn);
                     lobby.Add(conn);
@@ -135,6 +130,12 @@ namespace networkingLayer
         {
             try
             {
+                if (connectionRooms.ContainsKey(conn))
+                {
+                    SendRoomCreatedFailed(conn, "Already in a room");
+                    return;
+                }
+
                 string name = msg.ReadString();
                 string pass = msg.ReadString();
 
@@ -160,7 +161,7 @@ namespace networkingLayer
 
                 SendRoomJoinSuccess(conn, room.ID, playerID);
 
-                RemoveFromLobby(conn);
+                connectionRooms[conn] = room;
 
                 Console.WriteLine($"Room '{name}' created.");
 
@@ -189,6 +190,12 @@ namespace networkingLayer
         {
             try
             {
+                if (connectionRooms.ContainsKey(conn))
+                {
+                    SendRoomJoinFailed(conn, "Already in a room");
+                    return;
+                }
+
                 string name = msg.ReadString();
                 string pass = msg.ReadString();
 
@@ -216,7 +223,7 @@ namespace networkingLayer
 
                 Console.WriteLine($"Player {playerID} joined room '{name}'");
 
-                RemoveFromLobby(conn);
+                connectionRooms[conn] = info.Room;
 
                 if (info.Room.IsFull)
                 {
@@ -287,19 +294,6 @@ namespace networkingLayer
             }
         }
 
-        private void RemoveFromLobby(TcpNetworkConnection conn)
-        {
-            try
-            {
-                lobby.Remove(conn);
-                lobbyDispatchers.Remove(conn);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] RemoveFromLobby {conn.Remote}: {ex}");
-            }
-        }
-
         private void UpdateLobby()
         {
             try
@@ -308,6 +302,12 @@ namespace networkingLayer
                 {
                     try
                     {
+                        if (!conn.IsAlive())
+                        {
+                            HandleDisconnect(conn);
+                            continue;
+                        }
+
                         while (conn.Available() > 0)
                         {
                             var packet = conn.GetPacket();
@@ -317,7 +317,7 @@ namespace networkingLayer
                                 continue;
                             }
 
-                            lobbyDispatchers[conn].HandlePacket(packet, conn.Remote);
+                            RoutePacket(conn, packet);
                         }
                     }
                     catch (Exception ex)
@@ -332,44 +332,49 @@ namespace networkingLayer
                 Console.WriteLine($"[ERROR] UpdateLobby outer: {ex}");
             }
         }
+
+        private void RoutePacket(TcpNetworkConnection conn, byte[] packet)
+        {
+            if (connectionRooms.TryGetValue(conn, out Room? room))
+            {
+                room.ReceivePacket(packet, conn.Remote);
+                return;
+            }
+
+            if (lobbyDispatchers.TryGetValue(conn, out OSCDispatcher? dispatcher))
+                dispatcher.HandlePacket(packet, conn.Remote);
+        }
+
         private void HandleDisconnect(TcpNetworkConnection conn)
         {
+            if (!lobby.Contains(conn))
+                return;
+
             Console.WriteLine($"[INFO] Client disconnected: {conn.Remote}");
+
+            connectionRooms.TryGetValue(conn, out Room? room);
 
             try { conn.Close(); } catch { }
 
+            connections.Remove(conn);
             lobby.Remove(conn);
             lobbyDispatchers.Remove(conn);
+            connectionRooms.Remove(conn);
 
-            // Remove from rooms
-            foreach (var kvp in rooms)
+            if (room != null)
             {
-                var room = kvp.Value.Room;
-
                 room.HandleDisconnect(conn);
-            }
-        }
 
-        private void UpdateRooms()
-        {
-            try
-            {
-                foreach (var kvp in rooms)
+                foreach (var kvp in new List<KeyValuePair<TcpNetworkConnection, Room>>(connectionRooms))
                 {
-                    try
-                    {
-                        kvp.Value.Room.Update();
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[ERROR] UpdateRooms room '{kvp.Key}': {ex}");
-                    }
+                    if (kvp.Value == room)
+                        connectionRooms.Remove(kvp.Key);
                 }
+                return;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] UpdateRooms outer: {ex}");
-            }
+
+            foreach (var kvp in rooms)
+                kvp.Value.Room.HandleDisconnect(conn);
         }
     }
 }
