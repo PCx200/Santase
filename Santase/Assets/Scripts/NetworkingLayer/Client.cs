@@ -277,7 +277,6 @@ public class Client : MonoBehaviour
     public void SendPlayCard(int cardIndex)
     {
         var msg = new OSCMessageOut("/PlayCard")
-            .AddInt(playerID)
             .AddInt(cardIndex);
 
         connection.Send(msg.GetBytes());
@@ -285,16 +284,14 @@ public class Client : MonoBehaviour
 
     public void SendCloseDeck()
     {
-        var msg = new OSCMessageOut("/CloseDeck")
-            .AddInt(playerID);
+        var msg = new OSCMessageOut("/CloseDeck");
 
         connection.Send(msg.GetBytes());
     }
 
     public void SendExchangeKoz()
     {
-        var msg = new OSCMessageOut("/ExchangeKoz")
-            .AddInt(playerID);
+        var msg = new OSCMessageOut("/ExchangeKoz");
 
         connection.Send(msg.GetBytes());
     }

@@ -339,6 +339,7 @@ public class GameModel
         if (roundWinner != null)
         {
             OnRoundOver?.Invoke(roundWinner.ID, (player1.GetGamePoints(),player2.GetGamePoints()));
+            RestartRound();
             return;
         }
 
@@ -432,7 +433,6 @@ public class GameModel
         playerWhoClosed = -1;
         gameState = GameState.Phase1;
 
-        OnStateChanged?.Invoke();
         OnHandChanged?.Invoke(0, player1.GetHand());
         OnHandChanged?.Invoke(1, player2.GetHand());
         OnKozChanged?.Invoke(kozCard);
