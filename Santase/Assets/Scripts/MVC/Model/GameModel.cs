@@ -54,7 +54,7 @@ public class GameModel
     public void StartGame()
     {
         OnGameStarted?.Invoke();
-        OnScoreChanged?.Invoke(player1.GetRoundPoints(), player2.GetRoundPoints());
+
 
         InitDeck();
         DetermineKoz();
@@ -251,23 +251,43 @@ public class GameModel
         // PHASE 2 INVALID MOVE CHECK
         if (gameState == GameState.Phase2 || gameState == GameState.Closed)
         {
-            Player leader = activePlayer == 0 ? player1 : player2;
-            Player follower = activePlayer == 0 ? player2 : player1;
+            Player leader = trickLeader == 0 ? player1 : player2;
+            Player follower = trickLeader == 0 ? player2 : player1;
 
-            Card leaderCard = activePlayer == 0 ? p1Played : p2Played;
-            Card followerCard = activePlayer == 0 ? p2Played : p1Played;
+            Card leaderCard = trickLeader == 0 ? p1Played : p2Played;
+            Card followerCard = trickLeader == 0 ? p2Played : p1Played;
 
             bool followerHasSuit = follower.GetHand().Exists(c => c.GetSuit() == leaderCard.GetSuit());
+            bool followerHasKoz = follower.GetHand().Exists(c => c.GetKoz());
 
-            if (followerHasSuit && followerCard.GetSuit() != leaderCard.GetSuit())
+            if (followerCard.GetSuit() != leaderCard.GetSuit() && followerHasSuit)
             {
                 ReturnPlayedCardsToHands();
                 cardsPlayed = 0;
+
+                activePlayer = leader.ID;
+                trickLeader = activePlayer;
 
                 OnNotification?.Invoke("You must follow suit if possible.");
                 OnTrickEnded?.Invoke();
                 OnHandChanged?.Invoke(0, player1.GetHand());
                 OnHandChanged?.Invoke(1, player2.GetHand());
+                OnTurnChanged?.Invoke(activePlayer);
+                return;
+            }
+            if (!followerHasSuit && followerHasKoz && !followerCard.GetKoz())
+            {
+                ReturnPlayedCardsToHands();
+                cardsPlayed = 0;
+
+                activePlayer = leader.ID;
+                trickLeader = activePlayer;
+
+                OnNotification?.Invoke("You must play a trump (koz) if you cannot follow suit.");
+                OnTrickEnded?.Invoke();
+                OnHandChanged?.Invoke(0, player1.GetHand());
+                OnHandChanged?.Invoke(1, player2.GetHand());
+                OnTurnChanged?.Invoke(activePlayer);
                 return;
             }
         }
