@@ -101,7 +101,7 @@ namespace networkingLayer
                 }
             }
 
-            if (Player1 == null && Player2 == null)
+            if (Player1 == null || Player2 == null)
                 OnRoomEmpty?.Invoke(ID);
         }
         public void DisconnectPlayer(TcpNetworkConnection conn)
